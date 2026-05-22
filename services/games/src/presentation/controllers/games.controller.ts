@@ -49,6 +49,11 @@ import {
   RoundVerifyEnvelopeResponseDto,
 } from "../dtos/swagger/game-response.dto";
 import { HealthService } from "@/infrastructure/health/health.service";
+import { GetLeaderboardUseCase } from "../../application/use-cases/get-leaderboard.use-case";
+import {
+  getLeaderboardQuerySchema,
+  type GetLeaderboardQueryDto,
+} from "../dtos/get-leaderboard-query.dto";
 
 @Controller()
 export class GamesController {
@@ -62,6 +67,7 @@ export class GamesController {
     private readonly getRoundVerifyUseCase: GetRoundVerifyUseCase,
     private readonly getBetByIdUseCase: GetBetByIdUseCase,
     private readonly healthService: HealthService,
+    private readonly getLeaderboardUseCase: GetLeaderboardUseCase,
   ) {}
 
   @ApiOperation({
@@ -343,6 +349,35 @@ export class GamesController {
   }> {
     return this.getRoundVerifyUseCase.execute({
       roundId,
+    });
+  }
+
+  @ApiOperation({
+    summary: "Get players leaderboard",
+  })
+  @ApiOkResponse({
+    description: "Leaderboard successfully returned.",
+  })
+  @ApiBadRequestResponse({
+    type: ApiErrorResponseDto,
+  })
+  @Get("leaderboard")
+  async getLeaderboard(
+    @Query(new ZodValidationPipe(getLeaderboardQuerySchema))
+    query: GetLeaderboardQueryDto,
+  ): Promise<{
+    items: Array<{
+      playerId: string;
+      betsCount: number;
+      cashoutsCount: number;
+      lostBetsCount: number;
+      totalWageredCents: string;
+      totalPayoutCents: string;
+      totalProfitCents: string;
+    }>;
+  }> {
+    return this.getLeaderboardUseCase.execute({
+      limit: query.limit,
     });
   }
 }

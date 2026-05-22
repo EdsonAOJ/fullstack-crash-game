@@ -93,4 +93,28 @@ describe("Gameplay Smoke E2E", () => {
     expect(wallet.playerId).toBe("player");
     expect(BigInt(wallet.balanceCents)).toBeGreaterThanOrEqual(0n);
   });
+
+  test("returns leaderboard", async () => {
+    const response = await fetch(`${KONG_URL}/games/leaderboard?limit=10`);
+
+    expect(response.status).toBe(200);
+
+    const body = (await response.json()) as {
+      success?: boolean;
+      data?: {
+        items?: Array<{
+          playerId: string;
+          betsCount: number;
+          cashoutsCount: number;
+          lostBetsCount: number;
+          totalWageredCents: string;
+          totalPayoutCents: string;
+          totalProfitCents: string;
+        }>;
+      };
+    };
+
+    expect(body.success).toBe(true);
+    expect(Array.isArray(body.data?.items)).toBe(true);
+  });
 });

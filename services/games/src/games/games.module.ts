@@ -12,6 +12,7 @@ import {
   GAME_REALTIME_NOTIFIER,
   GAME_UNIT_OF_WORK,
   ID_GENERATOR,
+  LEADERBOARD_REPOSITORY,
   OUTBOX_REPOSITORY,
   PROCESSED_EVENT_REPOSITORY,
   ROUND_REPOSITORY,
@@ -46,6 +47,9 @@ import { GamesController } from "../presentation/controllers/games.controller";
 import { PrismaProcessedEventRepository } from "@/infrastructure/database/prisma/prisma-processed-event.repository";
 import { WalletResultProcessor } from "@/application/services/wallet-result-processor.service";
 import { HealthService } from "@/infrastructure/health/health.service";
+import { PrismaLeaderboardRepository } from "@/infrastructure/database/prisma/prisma-leaderboard.repository";
+import { GetLeaderboardUseCase } from "@/application/use-cases/get-leaderboard.use-case";
+import { LeaderboardRepository } from "@/application/ports/leaderboard.repository";
 
 @Module({
   controllers: [GamesController],
@@ -60,6 +64,18 @@ import { HealthService } from "@/infrastructure/health/health.service";
     JwtAuthGuard,
     OutboxPublisherRunner,
     HealthService,
+    {
+      provide: LEADERBOARD_REPOSITORY,
+      useFactory: (prisma: PrismaService) =>
+        new PrismaLeaderboardRepository(prisma),
+      inject: [PrismaService],
+    },
+    {
+      provide: GetLeaderboardUseCase,
+      useFactory: (leaderboardRepository: LeaderboardRepository) =>
+        new GetLeaderboardUseCase(leaderboardRepository),
+      inject: [LEADERBOARD_REPOSITORY],
+    },
     {
       provide: GAME_REALTIME_NOTIFIER,
       useExisting: GameEventsGateway,
