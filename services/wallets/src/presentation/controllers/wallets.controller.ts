@@ -16,7 +16,7 @@ import {
   HealthEnvelopeResponseDto,
   WalletEnvelopeResponseDto,
 } from "../dtos/swagger/wallet-response.dto";
-import { HealthService } from "@/infrastructure/health/health.service";
+import { HealthService } from "../../infrastructure/health/health.service";
 
 @ApiTags("Wallets")
 @Controller()
@@ -34,7 +34,7 @@ export class WalletsController {
   @ApiOkResponse({
     type: HealthEnvelopeResponseDto,
   })
-  async healthServicehealth() {
+  async health() {
     return this.healthService.check();
   }
 

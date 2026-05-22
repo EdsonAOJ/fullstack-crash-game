@@ -68,18 +68,42 @@ export class PlaceBetRequestDto {
     description: "Bet amount in cents. Must be a positive integer string.",
   })
   amountCents!: string;
+
+  @ApiPropertyOptional({
+    example: 1.5,
+    description:
+      "Optional target multiplier for automatic cashout. When the round reaches this multiplier, the bet is automatically cashed out.",
+  })
+  autoCashoutMultiplier?: number;
+}
+
+export class HealthChecksDto {
+  @ApiProperty({
+    example: "ok",
+  })
+  database!: "ok" | "down";
+
+  @ApiProperty({
+    example: "ok",
+  })
+  rabbitmq!: "ok" | "down";
 }
 
 export class HealthResponseDto {
   @ApiProperty({
     example: "ok",
   })
-  status!: string;
+  status!: "ok" | "degraded";
 
   @ApiProperty({
-    example: "games",
+    example: "wallets",
   })
-  service!: string;
+  service!: "wallets";
+
+  @ApiProperty({
+    type: HealthChecksDto,
+  })
+  checks!: HealthChecksDto;
 }
 
 export class HealthEnvelopeResponseDto {
@@ -140,6 +164,13 @@ export class BetResponseDto {
 
   @ApiPropertyOptional({
     example: 1.5,
+    description: "Optional configured target for automatic cashout.",
+  })
+  autoCashoutMultiplier?: number;
+
+  @ApiPropertyOptional({
+    example: 1.5,
+    description: "Actual multiplier used when the bet was cashed out.",
   })
   cashoutMultiplier?: number;
 
@@ -218,6 +249,11 @@ export class RoundBetDto {
   @ApiPropertyOptional({
     example: 1.5,
   })
+  autoCashoutMultiplier?: number;
+
+  @ApiPropertyOptional({
+    example: 1.5,
+  })
   cashoutMultiplier?: number;
 
   @ApiPropertyOptional({
@@ -252,10 +288,12 @@ export class RoundResponseDto {
   })
   status!: string;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     example: 2.35,
+    description:
+      "Crash point is only exposed after the round is revealed/completed.",
   })
-  crashPoint!: number;
+  crashPoint?: number;
 
   @ApiProperty({
     example: 1.42,
@@ -281,6 +319,11 @@ export class RoundResponseDto {
     example: "2026-05-21T23:00:23.000Z",
   })
   completedAt?: string;
+
+  @ApiPropertyOptional({
+    example: "985f9e2f40b0c9c81d5d4b5f5e4cbddecd8c6fcfa8e20f6a603ad8d8d8e1f8a1",
+  })
+  serverSeedHash?: string;
 
   @ApiProperty({
     type: [RoundBetDto],
@@ -419,14 +462,20 @@ export class RoundVerifyResponseDto {
   roundId!: string;
 
   @ApiProperty({
+    example: "COMPLETED",
+  })
+  status!: string;
+
+  @ApiProperty({
     example: "HMAC_SHA256",
   })
   algorithm!: "HMAC_SHA256";
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     example: "9d759d0f-9d52-4d01-bf8f-32eb65fa0704",
+    description: "Only revealed after round completion.",
   })
-  serverSeed!: string;
+  serverSeed?: string;
 
   @ApiProperty({
     example: "985f9e2f40b0c9c81d5d4b5f5e4cbddecd8c6fcfa8e20f6a603ad8d8d8e1f8a1",
@@ -443,35 +492,46 @@ export class RoundVerifyResponseDto {
   })
   nonce!: number;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     example: 2.35,
+    description: "Only revealed after round completion.",
   })
-  crashPoint!: number;
+  crashPoint?: number;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     example: 235,
+    description:
+      "Crash point scaled by 100. Only revealed after round completion.",
   })
-  crashPointMultiplier!: number;
+  crashPointMultiplier?: number;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     example: 2.35,
+    description: "Only calculated after round completion.",
   })
-  calculatedCrashPoint!: number;
+  calculatedCrashPoint?: number;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     example: 235,
+    description:
+      "Calculated crash point scaled by 100. Only calculated after round completion.",
   })
-  calculatedCrashPointMultiplier!: number;
+  calculatedCrashPointMultiplier?: number;
+
+  @ApiPropertyOptional({
+    example: true,
+  })
+  isHashValid?: boolean;
+
+  @ApiPropertyOptional({
+    example: true,
+  })
+  isCrashPointValid?: boolean;
 
   @ApiProperty({
     example: true,
   })
-  isHashValid!: boolean;
-
-  @ApiProperty({
-    example: true,
-  })
-  isCrashPointValid!: boolean;
+  isRevealed!: boolean;
 }
 
 export class RoundVerifyEnvelopeResponseDto {
@@ -495,11 +555,79 @@ export class RoundVerifyEnvelopeResponseDto {
   })
   data!: RoundVerifyResponseDto;
 
-  @ApiPropertyOptional({
-    example: 2,
-    description: "Optional multiplier target for automatic cashout.",
+  @ApiProperty({
+    example: null,
+    nullable: true,
+    type: "object",
+    additionalProperties: true,
   })
-  autoCashoutMultiplier?: number;
+  meta!: Record<string, unknown> | null;
+}
+
+export class LeaderboardItemDto {
+  @ApiProperty({
+    example: "player",
+  })
+  playerId!: string;
+
+  @ApiProperty({
+    example: 5,
+  })
+  betsCount!: number;
+
+  @ApiProperty({
+    example: 2,
+  })
+  cashoutsCount!: number;
+
+  @ApiProperty({
+    example: 3,
+  })
+  lostBetsCount!: number;
+
+  @ApiProperty({
+    example: "5000",
+  })
+  totalWageredCents!: string;
+
+  @ApiProperty({
+    example: "7200",
+  })
+  totalPayoutCents!: string;
+
+  @ApiProperty({
+    example: "2200",
+  })
+  totalProfitCents!: string;
+}
+
+export class LeaderboardResponseDto {
+  @ApiProperty({
+    type: [LeaderboardItemDto],
+  })
+  items!: LeaderboardItemDto[];
+}
+
+export class LeaderboardEnvelopeResponseDto {
+  @ApiProperty({
+    example: true,
+  })
+  success!: true;
+
+  @ApiProperty({
+    example: "2026-05-21T23:00:00.000Z",
+  })
+  timestamp!: string;
+
+  @ApiProperty({
+    example: "9dff1b6f-bb1d-4c8a-8ee9-42de3c4d312c",
+  })
+  requestId!: string;
+
+  @ApiProperty({
+    type: LeaderboardResponseDto,
+  })
+  data!: LeaderboardResponseDto;
 
   @ApiProperty({
     example: null,

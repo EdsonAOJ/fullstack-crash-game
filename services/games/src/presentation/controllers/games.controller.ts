@@ -37,24 +37,27 @@ import {
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
+  ApiTags,
   ApiUnauthorizedResponse,
 } from "@nestjs/swagger";
 import {
   ApiErrorResponseDto,
   BetEnvelopeResponseDto,
   HealthEnvelopeResponseDto,
+  LeaderboardEnvelopeResponseDto,
   PlaceBetRequestDto,
   RoundEnvelopeResponseDto,
   RoundsHistoryEnvelopeResponseDto,
   RoundVerifyEnvelopeResponseDto,
 } from "../dtos/swagger/game-response.dto";
-import { HealthService } from "@/infrastructure/health/health.service";
+import { HealthService } from "../../infrastructure/health/health.service";
 import { GetLeaderboardUseCase } from "../../application/use-cases/get-leaderboard.use-case";
 import {
   getLeaderboardQuerySchema,
   type GetLeaderboardQueryDto,
 } from "../dtos/get-leaderboard-query.dto";
 
+@ApiTags("Games")
 @Controller()
 export class GamesController {
   constructor(
@@ -77,7 +80,7 @@ export class GamesController {
     type: HealthEnvelopeResponseDto,
   })
   @Get("health")
-  async healthServicehealth() {
+  async health() {
     return this.healthService.check();
   }
 
@@ -356,7 +359,7 @@ export class GamesController {
     summary: "Get players leaderboard",
   })
   @ApiOkResponse({
-    description: "Leaderboard successfully returned.",
+    type: LeaderboardEnvelopeResponseDto,
   })
   @ApiBadRequestResponse({
     type: ApiErrorResponseDto,
