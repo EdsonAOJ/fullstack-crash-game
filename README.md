@@ -1,57 +1,57 @@
-# Crash Game — Full-stack Challenge
+# Crash Game — Desafio Full-stack
 
-Crash Game implementation built for the Jungle Gaming full-stack challenge.
+Implementação de um Crash Game para o desafio full-stack da Jungle Gaming.
 
-This project implements a distributed Crash Game backend using **NestJS**, **Bun**, **PostgreSQL**, **RabbitMQ**, **Kong**, **Keycloak**, **Prisma**, **DDD**, event-driven communication, transactional Outbox/Inbox, provably fair rounds, auto cashout, leaderboard, health checks, rate limiting, CI, and Docker Compose.
+Este projeto implementa um backend distribuído para um Crash Game usando **NestJS**, **Bun**, **PostgreSQL**, **RabbitMQ**, **Kong**, **Keycloak**, **Prisma**, **DDD**, comunicação orientada a eventos, Outbox/Inbox transacional, rodadas provably fair, auto cashout, leaderboard, health checks, rate limiting, CI e Docker Compose.
 
-> **Note:** the backend and infrastructure were prioritized. The `frontend/` folder is present in the monorepo, but the main implemented scope is the backend, event-driven flows, infrastructure, and tests.
+> **Observação:** o backend e a infraestrutura foram priorizados. A pasta `frontend/` existe no monorepo, mas o escopo principal implementado foi backend, fluxos event-driven, infraestrutura e testes.
 
 ---
 
-## Table of Contents
+## Sumário
 
-- [Overview](#overview)
-- [Architecture](#architecture)
-- [Tech Stack](#tech-stack)
-- [Implemented Features](#implemented-features)
-- [Services and Ports](#services-and-ports)
-- [Quick Start](#quick-start)
-- [Authentication](#authentication)
-- [Main API Endpoints](#main-api-endpoints)
-- [Example Requests](#example-requests)
-- [Game Flow](#game-flow)
-- [Event-driven Communication](#event-driven-communication)
-- [Transactional Outbox and Inbox](#transactional-outbox-and-inbox)
+- [Visão Geral](#visão-geral)
+- [Arquitetura](#arquitetura)
+- [Stack Técnica](#stack-técnica)
+- [Funcionalidades Implementadas](#funcionalidades-implementadas)
+- [Serviços e Portas](#serviços-e-portas)
+- [Como Rodar](#como-rodar)
+- [Autenticação](#autenticação)
+- [Principais Endpoints](#principais-endpoints)
+- [Exemplos de Requisições](#exemplos-de-requisições)
+- [Fluxo do Jogo](#fluxo-do-jogo)
+- [Comunicação Orientada a Eventos](#comunicação-orientada-a-eventos)
+- [Outbox e Inbox Transacional](#outbox-e-inbox-transacional)
 - [Provably Fair](#provably-fair)
 - [Auto Cashout](#auto-cashout)
 - [Leaderboard](#leaderboard)
-- [Realtime Events](#realtime-events)
+- [Eventos em Tempo Real](#eventos-em-tempo-real)
 - [Health Checks](#health-checks)
 - [Rate Limiting](#rate-limiting)
-- [Testing](#testing)
-- [CI Pipeline](#ci-pipeline)
-- [Project Structure](#project-structure)
-- [Design Decisions](#design-decisions)
-- [Trade-offs and Future Improvements](#trade-offs-and-future-improvements)
-- [Useful Commands](#useful-commands)
-- [Final Notes](#final-notes)
+- [Testes](#testes)
+- [Pipeline de CI](#pipeline-de-ci)
+- [Estrutura do Projeto](#estrutura-do-projeto)
+- [Decisões Técnicas](#decisões-técnicas)
+- [Trade-offs e Melhorias Futuras](#trade-offs-e-melhorias-futuras)
+- [Comandos Úteis](#comandos-úteis)
+- [Notas Finais](#notas-finais)
 
 ---
 
-## Overview
+## Visão Geral
 
-A Crash Game is a real-time betting game where a multiplier starts at `1.00x` and increases until it crashes. Players can place a bet before the round starts and must cash out before the crash to receive a payout.
+Um Crash Game é um jogo de apostas em tempo real no qual um multiplicador começa em `1.00x` e aumenta até crashar. O jogador pode apostar antes da rodada começar e precisa sacar antes do crash para receber o pagamento.
 
-This implementation models the system as two independent bounded contexts:
+Esta implementação modela o sistema como dois bounded contexts independentes:
 
-- **Game Service**: manages rounds, bets, game engine, crash logic, provably fair data, realtime notifications, auto cashout, and leaderboard.
-- **Wallet Service**: manages player wallets, balance, credits, debits, and wallet transaction history.
+- **Game Service**: gerencia rodadas, apostas, engine do jogo, lógica de crash, dados provably fair, notificações em tempo real, auto cashout e leaderboard.
+- **Wallet Service**: gerencia carteiras dos jogadores, saldo, créditos, débitos e histórico de transações.
 
-The services communicate asynchronously through RabbitMQ using integration events.
+Os serviços se comunicam de forma assíncrona via RabbitMQ usando eventos de integração.
 
 ---
 
-## Architecture
+## Arquitetura
 
 ```txt
                         ┌──────────────────────────┐
@@ -89,67 +89,67 @@ The services communicate asynchronously through RabbitMQ using integration event
 
 ---
 
-## Tech Stack
+## Stack Técnica
 
-| Layer             | Technology                           |
-| ----------------- | ------------------------------------ |
-| Runtime           | Bun                                  |
-| Backend           | NestJS + TypeScript                  |
-| Database          | PostgreSQL                           |
-| ORM               | Prisma                               |
-| Messaging         | RabbitMQ                             |
-| API Gateway       | Kong                                 |
-| Identity Provider | Keycloak                             |
-| Realtime          | Socket.IO / NestJS WebSocket Gateway |
-| Validation        | Zod                                  |
-| API Docs          | Swagger / OpenAPI                    |
-| Tests             | Bun test runner                      |
-| Containers        | Docker Compose                       |
-| CI                | GitHub Actions                       |
+| Camada              | Tecnologia                           |
+| ------------------- | ------------------------------------ |
+| Runtime             | Bun                                  |
+| Backend             | NestJS + TypeScript                  |
+| Banco de dados      | PostgreSQL                           |
+| ORM                 | Prisma                               |
+| Mensageria          | RabbitMQ                             |
+| API Gateway         | Kong                                 |
+| Identity Provider   | Keycloak                             |
+| Tempo real          | Socket.IO / NestJS WebSocket Gateway |
+| Validação           | Zod                                  |
+| Documentação de API | Swagger / OpenAPI                    |
+| Testes              | Bun test runner                      |
+| Containers          | Docker Compose                       |
+| CI                  | GitHub Actions                       |
 
 ---
 
-## Implemented Features
+## Funcionalidades Implementadas
 
-### Core requirements
+### Requisitos principais
 
-- Game round lifecycle:
+- Ciclo de vida da rodada:
   - `WAITING_FOR_BETS`
   - `RUNNING`
   - `CRASHED`
   - `COMPLETED`
-- One bet per player per round.
-- Manual cashout.
-- Crash loss handling.
-- Wallet debit/credit through asynchronous events.
-- Insufficient balance rejection.
-- Monetary values represented in integer cents / `BigInt`.
-- JWT authentication through Keycloak.
-- Kong API Gateway.
-- RabbitMQ integration.
-- PostgreSQL persistence.
-- Unit tests and E2E tests.
-- Docker Compose setup with no manual infrastructure steps.
+- Uma aposta por jogador por rodada.
+- Cashout manual.
+- Tratamento de perda no crash.
+- Débito e crédito de carteira via eventos assíncronos.
+- Rejeição por saldo insuficiente.
+- Valores monetários representados em centavos inteiros / `BigInt`.
+- Autenticação JWT via Keycloak.
+- API Gateway com Kong.
+- Integração com RabbitMQ.
+- Persistência com PostgreSQL.
+- Testes unitários e E2E.
+- Docker Compose sem passos manuais de infraestrutura.
 
-### Extra features
+### Extras implementados
 
-- Transactional Outbox/Inbox.
-- Idempotent event processing.
-- Provably fair round verification.
+- Outbox/Inbox transacional.
+- Processamento idempotente de eventos.
+- Verificação provably fair.
 - Auto cashout.
 - Leaderboard.
-- Kong rate limiting.
-- Dependency-aware health checks.
-- Deterministic seed for E2E.
-- GitHub Actions CI.
-- Smoke E2E separated from full E2E for faster validation.
-- Swagger/OpenAPI documentation.
+- Rate limiting via Kong.
+- Health checks com dependências reais.
+- Seed determinística para E2E.
+- CI com GitHub Actions.
+- Smoke E2E separado do Full E2E para validação rápida.
+- Swagger/OpenAPI.
 
 ---
 
-## Services and Ports
+## Serviços e Portas
 
-| Service             | Direct URL               | Kong URL                        |
+| Serviço             | URL direta               | URL via Kong                    |
 | ------------------- | ------------------------ | ------------------------------- |
 | Games Service       | `http://localhost:4001`  | `http://localhost:8000/games`   |
 | Wallets Service     | `http://localhost:4002`  | `http://localhost:8000/wallets` |
@@ -161,27 +161,27 @@ The services communicate asynchronously through RabbitMQ using integration event
 
 ---
 
-## Quick Start
+## Como Rodar
 
-### Prerequisites
+### Pré-requisitos
 
 - Docker
 - Docker Compose
 - Bun
 
-### Install dependencies
+### Instalar dependências
 
 ```bash
 bun install
 ```
 
-### Start the full stack
+### Subir a stack completa
 
 ```bash
 bun run docker:up
 ```
 
-This starts:
+Esse comando sobe:
 
 - PostgreSQL
 - RabbitMQ
@@ -190,15 +190,15 @@ This starts:
 - Games Service
 - Wallets Service
 
-The stack applies database migrations and seeds automatically.
+A stack aplica migrations e seeds automaticamente.
 
-### Stop containers
+### Parar containers
 
 ```bash
 bun run docker:down
 ```
 
-### Reset everything
+### Resetar tudo
 
 ```bash
 bun run docker:prune
@@ -206,19 +206,19 @@ bun run docker:prune
 
 ---
 
-## Authentication
+## Autenticação
 
-Keycloak is imported automatically through Docker Compose.
+O Keycloak é importado automaticamente pelo Docker Compose.
 
-| Item          | Value                   |
-| ------------- | ----------------------- |
-| Realm         | `crash-game`            |
-| Client ID     | `crash-game-client`     |
-| Test user     | `player`                |
-| Test password | `player123`             |
-| Keycloak URL  | `http://localhost:8080` |
+| Item             | Valor                   |
+| ---------------- | ----------------------- |
+| Realm            | `crash-game`            |
+| Client ID        | `crash-game-client`     |
+| Usuário de teste | `player`                |
+| Senha            | `player123`             |
+| Keycloak URL     | `http://localhost:8080` |
 
-### Get an access token
+### Obter access token
 
 ```bash
 TOKEN=$(curl -s \
@@ -232,9 +232,9 @@ TOKEN=$(curl -s \
 
 ---
 
-## Main API Endpoints
+## Principais Endpoints
 
-All public calls should go through Kong:
+Todas as chamadas públicas devem passar pelo Kong:
 
 ```txt
 http://localhost:8000
@@ -242,45 +242,45 @@ http://localhost:8000
 
 ### Games
 
-| Method | Endpoint                         | Auth | Description                      |
-| ------ | -------------------------------- | ---- | -------------------------------- |
-| `GET`  | `/games/health`                  | No   | Games service health check       |
-| `GET`  | `/games/rounds/current`          | No   | Current round                    |
-| `GET`  | `/games/rounds/latest`           | No   | Latest finished round            |
-| `GET`  | `/games/rounds/history?limit=10` | No   | Rounds history                   |
-| `GET`  | `/games/rounds/:roundId/verify`  | No   | Provably fair verification       |
-| `GET`  | `/games/leaderboard?limit=10`    | No   | Player leaderboard               |
-| `POST` | `/games/bet`                     | Yes  | Place a bet                      |
-| `POST` | `/games/bet/cashout`             | Yes  | Manual cashout                   |
-| `GET`  | `/games/bets/me`                 | Yes  | Current authenticated player bet |
-| `GET`  | `/games/bets/:betId`             | Yes  | Bet by ID                        |
+| Método | Endpoint                         | Auth | Descrição                           |
+| ------ | -------------------------------- | ---- | ----------------------------------- |
+| `GET`  | `/games/health`                  | Não  | Health check do Games               |
+| `GET`  | `/games/rounds/current`          | Não  | Rodada atual                        |
+| `GET`  | `/games/rounds/latest`           | Não  | Última rodada finalizada            |
+| `GET`  | `/games/rounds/history?limit=10` | Não  | Histórico de rodadas                |
+| `GET`  | `/games/rounds/:roundId/verify`  | Não  | Verificação provably fair           |
+| `GET`  | `/games/leaderboard?limit=10`    | Não  | Ranking de jogadores                |
+| `POST` | `/games/bet`                     | Sim  | Criar aposta                        |
+| `POST` | `/games/bet/cashout`             | Sim  | Cashout manual                      |
+| `GET`  | `/games/bets/me`                 | Sim  | Aposta atual do jogador autenticado |
+| `GET`  | `/games/bets/:betId`             | Sim  | Buscar aposta por ID                |
 
 ### Wallets
 
-| Method | Endpoint          | Auth | Description                          |
-| ------ | ----------------- | ---- | ------------------------------------ |
-| `GET`  | `/wallets/health` | No   | Wallets service health check         |
-| `POST` | `/wallets`        | Yes  | Create authenticated player's wallet |
-| `GET`  | `/wallets/me`     | Yes  | Get authenticated player's wallet    |
+| Método | Endpoint          | Auth | Descrição                              |
+| ------ | ----------------- | ---- | -------------------------------------- |
+| `GET`  | `/wallets/health` | Não  | Health check do Wallets                |
+| `POST` | `/wallets`        | Sim  | Criar carteira do jogador autenticado  |
+| `GET`  | `/wallets/me`     | Sim  | Buscar carteira do jogador autenticado |
 
 ---
 
-## Example Requests
+## Exemplos de Requisições
 
-### Check current round
+### Buscar rodada atual
 
 ```bash
 curl http://localhost:8000/games/rounds/current | jq
 ```
 
-### Get wallet
+### Buscar carteira
 
 ```bash
 curl http://localhost:8000/wallets/me \
   -H "Authorization: Bearer $TOKEN" | jq
 ```
 
-### Place a bet
+### Criar aposta
 
 ```bash
 curl -X POST http://localhost:8000/games/bet \
@@ -289,7 +289,7 @@ curl -X POST http://localhost:8000/games/bet \
   -d '{"amountCents":"1000"}' | jq
 ```
 
-### Place a bet with auto cashout
+### Criar aposta com auto cashout
 
 ```bash
 curl -X POST http://localhost:8000/games/bet \
@@ -298,7 +298,7 @@ curl -X POST http://localhost:8000/games/bet \
   -d '{"amountCents":"1000","autoCashoutMultiplier":1.5}' | jq
 ```
 
-### Manual cashout
+### Cashout manual
 
 ```bash
 curl -X POST http://localhost:8000/games/bet/cashout \
@@ -311,7 +311,7 @@ curl -X POST http://localhost:8000/games/bet/cashout \
 curl "http://localhost:8000/games/leaderboard?limit=10" | jq
 ```
 
-### Provably fair verification
+### Verificação provably fair
 
 ```bash
 curl "http://localhost:8000/games/rounds/<roundId>/verify" | jq
@@ -319,91 +319,91 @@ curl "http://localhost:8000/games/rounds/<roundId>/verify" | jq
 
 ---
 
-## Game Flow
+## Fluxo do Jogo
 
-### Bet placement
+### Criação de aposta
 
-1. Player calls `POST /games/bet`.
-2. Game Service creates a bet with status `PENDING_DEBIT`.
-3. Game Service writes `wallet.debit.requested` to its Outbox.
-4. Outbox publisher sends the event to RabbitMQ.
-5. Wallet Service consumes the event.
-6. Wallet Service debits the player wallet or rejects the debit.
-7. Wallet Service writes a result event to its Outbox:
+1. Jogador chama `POST /games/bet`.
+2. Game Service cria uma aposta com status `PENDING_DEBIT`.
+3. Game Service grava `wallet.debit.requested` no Outbox.
+4. Publisher do Outbox envia o evento ao RabbitMQ.
+5. Wallet Service consome o evento.
+6. Wallet Service debita a carteira ou rejeita o débito.
+7. Wallet Service grava um evento de resultado no Outbox:
    - `wallet.debited`
    - `wallet.debit.rejected`
-8. Game Service consumes the wallet result.
-9. Bet becomes:
-   - `ACCEPTED`, or
+8. Game Service consome o resultado da Wallet.
+9. A aposta se torna:
+   - `ACCEPTED`, ou
    - `REJECTED`.
 
-### Manual cashout
+### Cashout manual
 
-1. Player calls `POST /games/bet/cashout`.
-2. Game Service calculates payout:
+1. Jogador chama `POST /games/bet/cashout`.
+2. Game Service calcula o payout:
    - `amountCents * currentMultiplier`
-3. Bet becomes `CASHED_OUT_PENDING_CREDIT`.
-4. Game Service emits `wallet.credit.requested`.
-5. Wallet Service credits the wallet.
-6. Wallet Service emits `wallet.credited`.
-7. Game Service confirms the cashout.
-8. Bet becomes `CASHED_OUT`.
+3. A aposta se torna `CASHED_OUT_PENDING_CREDIT`.
+4. Game Service emite `wallet.credit.requested`.
+5. Wallet Service credita a carteira.
+6. Wallet Service emite `wallet.credited`.
+7. Game Service confirma o cashout.
+8. A aposta se torna `CASHED_OUT`.
 
-### Crash loss
+### Perda no crash
 
-1. Round reaches crash point.
-2. Game Service marks all accepted bets that did not cash out as `LOST`.
-3. No wallet credit is emitted for lost bets.
-
----
-
-## Event-driven Communication
-
-Events are shared through the `@crash/events` package.
-
-### Main wallet events
-
-| Event                     | Producer | Consumer | Purpose                |
-| ------------------------- | -------- | -------- | ---------------------- |
-| `wallet.debit.requested`  | Games    | Wallets  | Request bet debit      |
-| `wallet.debited`          | Wallets  | Games    | Confirm debit          |
-| `wallet.debit.rejected`   | Wallets  | Games    | Reject debit           |
-| `wallet.credit.requested` | Games    | Wallets  | Request cashout credit |
-| `wallet.credited`         | Wallets  | Games    | Confirm credit         |
-| `wallet.credit.rejected`  | Wallets  | Games    | Reject credit          |
+1. A rodada atinge o crash point.
+2. Game Service marca como `LOST` todas as apostas aceitas que não fizeram cashout.
+3. Nenhum crédito de carteira é emitido para apostas perdidas.
 
 ---
 
-## Transactional Outbox and Inbox
+## Comunicação Orientada a Eventos
 
-Both services use a transactional Outbox/Inbox strategy.
+Os eventos são compartilhados pelo pacote `@crash/events`.
+
+### Principais eventos da carteira
+
+| Evento                    | Produtor | Consumidor | Objetivo                     |
+| ------------------------- | -------- | ---------- | ---------------------------- |
+| `wallet.debit.requested`  | Games    | Wallets    | Solicitar débito da aposta   |
+| `wallet.debited`          | Wallets  | Games      | Confirmar débito             |
+| `wallet.debit.rejected`   | Wallets  | Games      | Rejeitar débito              |
+| `wallet.credit.requested` | Games    | Wallets    | Solicitar crédito de cashout |
+| `wallet.credited`         | Wallets  | Games      | Confirmar crédito            |
+| `wallet.credit.rejected`  | Wallets  | Games      | Rejeitar crédito             |
+
+---
+
+## Outbox e Inbox Transacional
+
+Os dois serviços usam uma estratégia de Outbox/Inbox transacional.
 
 ### Outbox
 
-The service first stores domain changes and integration events in the same database transaction. A background publisher later reads pending events and publishes them to RabbitMQ.
+O serviço primeiro grava as mudanças de domínio e os eventos de integração na mesma transação de banco. Depois, um publisher em background lê eventos pendentes e publica no RabbitMQ.
 
-This avoids the classic distributed systems failure:
+Isso evita a falha clássica em sistemas distribuídos:
 
 ```txt
 database write succeeds
 message publish fails
 ```
 
-### Inbox / processed events
+### Inbox / eventos processados
 
-Consumers store processed event IDs in a `processed_events` table.
+Os consumers gravam IDs de eventos processados em uma tabela `processed_events`.
 
-This provides idempotent processing and protects against duplicate delivery from RabbitMQ.
+Isso garante processamento idempotente e protege contra entregas duplicadas do RabbitMQ.
 
-### Why this matters
+### Por que isso importa
 
-RabbitMQ provides at-least-once delivery. Therefore, consumers must be idempotent. This project treats duplicated events as safe no-ops.
+RabbitMQ trabalha com entrega at-least-once. Portanto, consumers precisam ser idempotentes. Neste projeto, eventos duplicados são tratados como operações seguras sem efeito colateral.
 
 ---
 
 ## Provably Fair
 
-Each round stores:
+Cada rodada armazena:
 
 - `serverSeed`
 - `serverSeedHash`
@@ -411,13 +411,13 @@ Each round stores:
 - `nonce`
 - `crashPointMultiplier`
 
-Before a round is completed, the API exposes only non-sensitive verification data, such as the `serverSeedHash`.
+Antes da rodada ser concluída, a API expõe apenas dados não sensíveis de verificação, como o `serverSeedHash`.
 
-After the round is completed, the API reveals the `serverSeed`, allowing the player to independently verify:
+Depois que a rodada é concluída, a API revela o `serverSeed`, permitindo que o jogador verifique independentemente:
 
-- the hash is valid
-- the crash point was predetermined
-- the result was not manipulated after bets were placed
+- se a hash é válida
+- se o crash point foi pré-determinado
+- se o resultado não foi manipulado após as apostas
 
 Endpoint:
 
@@ -429,9 +429,9 @@ GET /games/rounds/:roundId/verify
 
 ## Auto Cashout
 
-Players can provide an optional `autoCashoutMultiplier` when placing a bet.
+Jogadores podem informar um `autoCashoutMultiplier` opcional ao criar uma aposta.
 
-Example:
+Exemplo:
 
 ```json
 {
@@ -440,22 +440,22 @@ Example:
 }
 ```
 
-When the running round reaches the target multiplier:
+Quando a rodada em execução atinge o multiplicador alvo:
 
-1. Game engine detects eligible accepted bets.
-2. Bet is moved to `CASHED_OUT_PENDING_CREDIT`.
-3. Game Service stores a `wallet.credit.requested` event in the Outbox.
-4. Wallet Service credits the player.
-5. Game Service confirms the wallet result.
-6. Bet becomes `CASHED_OUT`.
+1. A engine identifica apostas aceitas elegíveis.
+2. A aposta é movida para `CASHED_OUT_PENDING_CREDIT`.
+3. Game Service grava um evento `wallet.credit.requested` no Outbox.
+4. Wallet Service credita o jogador.
+5. Game Service confirma o resultado da Wallet.
+6. A aposta se torna `CASHED_OUT`.
 
-This is implemented in the game engine without exposing another REST action.
+Isso é executado pela engine do jogo, sem expor uma nova ação REST.
 
 ---
 
 ## Leaderboard
 
-The leaderboard ranks players by profit using completed bets.
+O leaderboard ranqueia jogadores por lucro usando apostas finalizadas.
 
 Endpoint:
 
@@ -463,7 +463,7 @@ Endpoint:
 GET /games/leaderboard?limit=10
 ```
 
-Response shape:
+Formato da resposta:
 
 ```json
 {
@@ -481,48 +481,48 @@ Response shape:
 }
 ```
 
-Only finalized bets are considered:
+Apenas apostas finalizadas são consideradas:
 
 - `CASHED_OUT`
 - `LOST`
 
-Pending or rejected bets are ignored.
+Apostas pendentes ou rejeitadas são ignoradas.
 
 ---
 
-## Realtime Events
+## Eventos em Tempo Real
 
-The Game Service exposes a WebSocket gateway under the `/games` namespace.
+O Game Service expõe um WebSocket Gateway no namespace `/games`.
 
-Server-side events include:
+Eventos emitidos pelo servidor:
 
-| Event                      | Description           |
-| -------------------------- | --------------------- |
-| `connection.ready`         | Client connected      |
-| `round.created`            | New round created     |
-| `round.started`            | Round started         |
-| `round.multiplier.updated` | Multiplier changed    |
-| `round.crashed`            | Round crashed         |
-| `round.completed`          | Round completed       |
-| `bet.placed`               | Bet placed            |
-| `bet.accepted`             | Wallet debit accepted |
-| `bet.rejected`             | Wallet debit rejected |
-| `bet.cashed_out`           | Bet cashed out        |
+| Evento                     | Descrição                    |
+| -------------------------- | ---------------------------- |
+| `connection.ready`         | Cliente conectado            |
+| `round.created`            | Nova rodada criada           |
+| `round.started`            | Rodada iniciada              |
+| `round.multiplier.updated` | Multiplicador atualizado     |
+| `round.crashed`            | Rodada crashou               |
+| `round.completed`          | Rodada concluída             |
+| `bet.placed`               | Aposta criada                |
+| `bet.accepted`             | Débito aceito pela Wallet    |
+| `bet.rejected`             | Débito rejeitado pela Wallet |
+| `bet.cashed_out`           | Aposta sacada                |
 
-Player actions are still performed through REST. WebSocket is used for server-to-client synchronization.
+As ações do jogador são executadas via REST. O WebSocket é usado para sincronização servidor-cliente.
 
 ---
 
 ## Health Checks
 
-Both services expose dependency-aware health endpoints.
+Os dois serviços expõem health checks com verificação de dependências reais.
 
 ```bash
 curl http://localhost:8000/games/health | jq
 curl http://localhost:8000/wallets/health | jq
 ```
 
-Example response:
+Exemplo de resposta:
 
 ```json
 {
@@ -535,21 +535,21 @@ Example response:
 }
 ```
 
-The health check validates:
+O health check valida:
 
-- service availability
-- PostgreSQL connectivity
-- RabbitMQ connectivity
+- disponibilidade do serviço
+- conectividade com PostgreSQL
+- conectividade com RabbitMQ
 
 ---
 
 ## Rate Limiting
 
-Kong applies rate limiting to protect the API.
+O Kong aplica rate limiting para proteger a API.
 
-State-changing operations such as bet placement, cashout, and wallet creation can be protected with stricter route-level limits.
+Operações de mudança de estado, como criação de aposta, cashout e criação de carteira, podem ser protegidas com limites mais restritos por rota.
 
-The configuration is defined in:
+A configuração fica em:
 
 ```txt
 docker/kong/kong.yml
@@ -557,26 +557,26 @@ docker/kong/kong.yml
 
 ---
 
-## Testing
+## Testes
 
-### Root validation
+### Validação pela raiz
 
-Run the main validation command from the repository root:
+Execute o comando principal na raiz do repositório:
 
 ```bash
 bun run check
 ```
 
-This runs:
+Esse comando executa:
 
-- Games typecheck
-- Games lint
-- Games unit tests
-- Games smoke E2E
-- Wallets typecheck
-- Wallets lint
-- Wallets unit tests
-- Wallets E2E
+- typecheck do Games
+- lint do Games
+- testes unitários do Games
+- smoke E2E do Games
+- typecheck do Wallets
+- lint do Wallets
+- testes unitários do Wallets
+- E2E do Wallets
 
 ### Games
 
@@ -589,9 +589,9 @@ bun test tests/unit
 bun run test:e2e
 ```
 
-### Games full E2E
+### Games Full E2E
 
-The full gameplay E2E suite is available but intentionally not part of the default validation because it depends on real game-engine timing and can take longer.
+A suíte completa de gameplay E2E está disponível, mas não faz parte da validação padrão porque depende do timing real da engine e pode demorar mais.
 
 ```bash
 cd services/games
@@ -612,22 +612,22 @@ bun test tests/e2e
 
 ---
 
-## CI Pipeline
+## Pipeline de CI
 
-GitHub Actions runs on push and pull request.
+O GitHub Actions roda em push e pull request.
 
-The CI validates:
+A pipeline valida:
 
-- dependency installation
-- Prisma client generation
+- instalação de dependências
+- geração do Prisma Client
 - typecheck
 - lint
-- unit tests
-- Docker stack startup
+- testes unitários
+- subida da stack Docker
 - health checks
-- E2E smoke tests
+- smoke E2E
 
-The pipeline is defined in:
+A pipeline fica em:
 
 ```txt
 .github/workflows/ci.yml
@@ -635,7 +635,7 @@ The pipeline is defined in:
 
 ---
 
-## Project Structure
+## Estrutura do Projeto
 
 ```txt
 fullstack-challenge/
@@ -673,131 +673,131 @@ fullstack-challenge/
 
 ---
 
-## Design Decisions
+## Decisões Técnicas
 
-### DDD and bounded contexts
+### DDD e bounded contexts
 
-Game and Wallet were separated because they represent different business capabilities:
+Game e Wallet foram separados porque representam capacidades de negócio diferentes:
 
-- Game owns rounds, bets, crash logic, and fair verification.
-- Wallet owns balance, debits, credits, and monetary consistency.
+- Game controla rodadas, apostas, lógica de crash e verificação fair.
+- Wallet controla saldo, débitos, créditos e consistência monetária.
 
-This keeps domain rules isolated and avoids direct database coupling between services.
+Essa separação mantém as regras de domínio isoladas e evita acoplamento direto entre bancos de dados.
 
-### Asynchronous consistency
+### Consistência assíncrona
 
-Wallet operations are asynchronous. A bet starts as `PENDING_DEBIT` and only becomes `ACCEPTED` when the Wallet Service confirms the debit.
+Operações de Wallet são assíncronas. Uma aposta começa como `PENDING_DEBIT` e só se torna `ACCEPTED` quando o Wallet Service confirma o débito.
 
-This models a more realistic distributed system and avoids synchronous cross-service coupling.
+Isso representa melhor um sistema distribuído real e evita acoplamento síncrono entre serviços.
 
-### Monetary precision
+### Precisão monetária
 
-All monetary values are stored as integer cents using `BigInt`. No floating-point arithmetic is used for wallet balances.
+Todos os valores monetários são armazenados em centavos inteiros usando `BigInt`. Não é usado ponto flutuante para saldo de carteira.
 
 ### Outbox/Inbox
 
-Outbox guarantees event persistence with domain changes. Inbox guarantees idempotent consumption.
+O Outbox garante persistência de eventos junto com mudanças de domínio. O Inbox garante consumo idempotente.
 
-### Smoke vs full E2E
+### Smoke vs Full E2E
 
-The real game engine is time-based and probabilistic. Full E2E tests are useful, but they can be slow and flaky if executed on every CI run.
+A engine real do jogo é baseada em tempo e tem comportamento probabilístico. Testes Full E2E são úteis, mas podem ser lentos e instáveis se executados em todo CI.
 
-For this reason:
+Por isso:
 
-- Smoke E2E is used in the default validation path.
-- Full E2E remains available for deeper manual validation.
+- Smoke E2E é usado na validação padrão.
+- Full E2E continua disponível para validação manual mais profunda.
 
 ---
 
-## Trade-offs and Future Improvements
+## Trade-offs e Melhorias Futuras
 
 ### Frontend
 
-The frontend was not completed. The backend and infrastructure were prioritized to demonstrate distributed systems design, event-driven communication, resiliency, and core gameplay correctness.
+O frontend não foi concluído. Backend e infraestrutura foram priorizados para demonstrar arquitetura distribuída, comunicação orientada a eventos, resiliência e correção do gameplay principal.
 
-Future frontend work:
+Trabalhos futuros no frontend:
 
-- authenticated login with Keycloak
-- game screen with multiplier animation
-- current round bets
-- wallet balance
-- manual cashout button
-- auto cashout input
-- leaderboard UI
-- provably fair verification page
+- login autenticado com Keycloak
+- tela do jogo com animação do multiplicador
+- apostas da rodada atual
+- saldo da carteira
+- botão de cashout manual
+- input de auto cashout
+- UI de leaderboard
+- página de verificação provably fair
 
 ### Auto Bet
 
-Auto Bet was not implemented because it would require additional player strategy state and scheduled bet creation on every new round.
+Auto Bet não foi implementado porque exigiria estado adicional de estratégia por jogador e criação agendada de apostas em novas rodadas.
 
-A safe implementation would need:
+Uma implementação segura precisaria de:
 
-- strategy configuration per player
-- idempotent bet creation per round
-- stop-loss controls
-- safeguards against repeated automatic debits
+- configuração de estratégia por jogador
+- criação idempotente de apostas por rodada
+- stop-loss
+- proteções contra débitos automáticos repetidos
 
-### Observability
+### Observabilidade
 
-The project has health checks and structured lifecycle logs, but not full OpenTelemetry.
+O projeto possui health checks e logs básicos de lifecycle, mas não implementa OpenTelemetry completo.
 
-Future observability work:
+Melhorias futuras:
 
-- OpenTelemetry traces
-- Prometheus metrics
-- Grafana dashboard
-- RabbitMQ event latency metrics
-- RTP and betting volume metrics
+- traces com OpenTelemetry
+- métricas Prometheus
+- dashboards Grafana
+- métricas de latência de eventos RabbitMQ
+- métricas de RTP e volume de apostas
 
-### Leaderboard window
+### Janela do Leaderboard
 
-The current leaderboard is global. It can be extended to support time windows:
+O leaderboard atual é global. Ele pode ser expandido para suportar janelas de tempo:
 
 - 24h
 - 7d
 - all-time
 
-### Full E2E stability
+### Estabilidade do Full E2E
 
-The full gameplay E2E suite can be improved further by introducing deterministic test-only round generation or a controllable game engine clock.
+A suíte Full E2E pode ser melhorada com geração determinística de rodadas para teste ou um clock controlável da engine.
 
 ---
 
-## Useful Commands
+## Comandos Úteis
 
 ```bash
-# Start full stack
+# Subir stack completa
 bun run docker:up
 
-# Stop stack
+# Parar stack
 bun run docker:down
 
-# Reset stack
+# Resetar stack
 bun run docker:prune
 
-# Validate everything
+# Validar tudo
 bun run check
 
-# Tail logs
+# Acompanhar logs
 bun run docker:logs
 
-# Check containers
+# Ver containers
 bun run docker:ps
 ```
 
 ---
 
-## Final Notes
+## Notas Finais
 
-This implementation focuses on backend architecture, domain modeling, event-driven consistency, idempotency, and operational reliability.
+Esta implementação foca em arquitetura backend, modelagem de domínio, consistência orientada a eventos, idempotência e confiabilidade operacional.
 
-The most important technical choices were:
+As principais escolhas técnicas foram:
 
-- separate bounded contexts
-- asynchronous wallet settlement
-- transactional Outbox/Inbox
-- integer-based monetary arithmetic
-- provably fair verification
-- API Gateway protection
-- fast smoke E2E for CI
-- full E2E available for deeper validation
+- bounded contexts separados
+- liquidação assíncrona de carteira
+- Outbox/Inbox transacional
+- aritmética monetária baseada em inteiros
+- verificação provably fair
+- proteção via API Gateway
+- smoke E2E rápido para CI
+- full E2E disponível para validação mais profunda
