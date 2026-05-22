@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { beforeAll, describe, expect, test } from "bun:test";
 
 const KONG_URL = process.env.E2E_KONG_URL ?? "http://localhost:8000";
 const KEYCLOAK_URL = process.env.E2E_KEYCLOAK_URL ?? "http://localhost:8080";
@@ -37,6 +37,61 @@ interface LegacyNestErrorResponse {
   message: string | string[];
   error?: string;
   statusCode: number;
+}
+
+async function waitFor<T>(
+  description: string,
+  callback: () => Promise<T | null | false>,
+  options: {
+    timeoutMs?: number;
+    intervalMs?: number;
+  } = {},
+): Promise<T> {
+  const timeoutMs = options.timeoutMs ?? 60_000;
+  const intervalMs = options.intervalMs ?? 500;
+  const startedAt = Date.now();
+
+  while (Date.now() - startedAt < timeoutMs) {
+    const result = await callback();
+
+    if (result) {
+      return result;
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, intervalMs));
+  }
+
+  throw new Error(`Timed out waiting for ${description}.`);
+}
+
+async function waitForHttpOk(
+  description: string,
+  url: string,
+  options: {
+    timeoutMs?: number;
+    intervalMs?: number;
+  } = {},
+): Promise<void> {
+  await waitFor(
+    description,
+    async () => {
+      try {
+        const response = await fetch(url);
+
+        if (response.ok) {
+          return true;
+        }
+
+        return null;
+      } catch {
+        return null;
+      }
+    },
+    {
+      timeoutMs: options.timeoutMs ?? 60_000,
+      intervalMs: options.intervalMs ?? 500,
+    },
+  );
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -228,6 +283,17 @@ async function getMyWallet(token: string): Promise<WalletResponse> {
 }
 
 describe("Wallets E2E", () => {
+  beforeAll(async () => {
+    await waitForHttpOk(
+      "Wallets service to be available through Kong",
+      `${KONG_URL}/wallets/health`,
+      {
+        timeoutMs: 90_000,
+        intervalMs: 1000,
+      },
+    );
+  });
+
   test("returns the authenticated player's wallet", async () => {
     const token = await getAccessToken();
 
