@@ -785,7 +785,21 @@ bun run docker:logs
 bun run docker:ps
 ```
 
----
+## Swagger / OpenAPI
+
+O Swagger está disponível diretamente em cada serviço e também via Kong:
+
+| Serviço | URL direta                   | URL via Kong                         |
+| ------- | ---------------------------- | ------------------------------------ |
+| Games   | `http://localhost:4001/docs` | `http://localhost:8000/games/docs`   |
+| Wallets | `http://localhost:4002/docs` | `http://localhost:8000/wallets/docs` |
+
+A API pública deve ser acessada pelo Kong:
+
+| Serviço     | URL via Kong                    |
+| ----------- | ------------------------------- |
+| Games API   | `http://localhost:8000/games`   |
+| Wallets API | `http://localhost:8000/wallets` |
 
 ## Notas Finais
 
