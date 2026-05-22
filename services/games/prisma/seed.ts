@@ -1,4 +1,4 @@
-import { createHash, createHmac, randomUUID } from "node:crypto";
+import { createHash, createHmac } from "node:crypto";
 import { PrismaClient, RoundStatus } from "@prisma/client";
 
 const prisma = new PrismaClient();
@@ -6,6 +6,10 @@ const prisma = new PrismaClient();
 const INITIAL_CURRENT_MULTIPLIER = 100;
 const PUBLIC_SEED = "crash-game";
 const HOUSE_EDGE_PERCENT = 1;
+
+const SEEDED_ROUND_ID = "00000000-0000-4000-8000-000000000001";
+const SEEDED_SERVER_SEED = "seeded-server-seed-for-e2e";
+const SEEDED_NONCE = 1;
 
 function hashServerSeed(serverSeed: string): string {
   return createHash("sha256").update(serverSeed).digest("hex");
@@ -51,13 +55,26 @@ async function main(): Promise<void> {
     return;
   }
 
+  const existingSeededRound = await prisma.round.findUnique({
+    where: {
+      id: SEEDED_ROUND_ID,
+    },
+  });
+
+  if (existingSeededRound) {
+    console.log(
+      `Seeded game round already exists: ${SEEDED_ROUND_ID}. Skipping.`,
+    );
+    return;
+  }
+
   const now = new Date();
   const startsAt = new Date(now.getTime() + 10_000);
 
-  const serverSeed = randomUUID();
+  const serverSeed = SEEDED_SERVER_SEED;
   const serverSeedHash = hashServerSeed(serverSeed);
   const publicSeed = PUBLIC_SEED;
-  const nonce = Math.floor(now.getTime() / 1000);
+  const nonce = SEEDED_NONCE;
 
   const crashPointMultiplier = calculateCrashPointMultiplier({
     serverSeed,
@@ -67,6 +84,7 @@ async function main(): Promise<void> {
 
   const round = await prisma.round.create({
     data: {
+      id: SEEDED_ROUND_ID,
       status: RoundStatus.WAITING_FOR_BETS,
       crashPointMultiplier,
       currentMultiplier: INITIAL_CURRENT_MULTIPLIER,
@@ -80,7 +98,9 @@ async function main(): Promise<void> {
     },
   });
 
-  console.log(`Seeded initial game round: ${round.id}.`);
+  console.log(
+    `Seeded deterministic game round: ${round.id} with crash multiplier ${crashPointMultiplier}.`,
+  );
 }
 
 main()
