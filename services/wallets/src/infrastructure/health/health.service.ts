@@ -4,7 +4,7 @@ import { RabbitMQConnectionService } from "../messaging/rabbitmq/rabbitmq-connec
 
 export interface HealthCheckOutput {
   status: "ok" | "degraded";
-  service: "games";
+  service: "wallets";
   checks: {
     database: "ok" | "down";
     rabbitmq: "ok" | "down";
@@ -26,7 +26,7 @@ export class HealthService {
 
     return {
       status: database === "ok" && rabbitmq === "ok" ? "ok" : "degraded",
-      service: "games",
+      service: "wallets",
       checks: {
         database,
         rabbitmq,

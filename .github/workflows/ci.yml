@@ -104,7 +104,7 @@ jobs:
 
       - name: Games E2E tests
         working-directory: services/games
-        run: bun test tests/e2e
+        run: bun test tests:e2e
 
       - name: Wallets E2E tests
         working-directory: services/wallets
