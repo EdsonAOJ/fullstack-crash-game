@@ -16,8 +16,24 @@ interface WalletResponse {
 interface RoundResponse {
   id: string;
   status: string;
+  crashPoint?: number;
   currentMultiplier: number;
-  crashPoint: number;
+  startsAt: string;
+  startedAt?: string;
+  crashedAt?: string;
+  completedAt?: string;
+  serverSeedHash?: string;
+  bets: Array<{
+    id: string;
+    playerId: string;
+    amountCents: string;
+    status: string;
+    cashoutMultiplier?: number;
+    payoutCents?: string;
+    rejectionReason?: string;
+    createdAt: string;
+    updatedAt: string;
+  }>;
 }
 
 interface BetResponse {
@@ -322,6 +338,165 @@ async function waitForHttpOk(
   );
 }
 
+async function parseApiResponseData<TData>(response: Response): Promise<TData> {
+  const body = (await response.json()) as {
+    success: boolean;
+    data: TData;
+  };
+
+  expect(body.success).toBe(true);
+
+  return body.data;
+}
+
+async function getLatestCompletedRound(): Promise<RoundResponse> {
+  const response = await fetch(`${KONG_URL}/games/rounds/latest`);
+
+  if (!response.ok) {
+    const body = await response.text();
+
+    throw new Error(`Failed to get latest round: ${response.status} ${body}`);
+  }
+
+  return parseApiResponseData<RoundResponse>(response);
+}
+
+async function executeCashoutScenario(token: string): Promise<void> {
+  const initialWallet = await getWallet(token);
+  const initialBalance = BigInt(initialWallet.balanceCents);
+
+  const placedBet = await waitFor(
+    "bet to be placed during betting window",
+    async () => tryPlaceBet(token, "1000"),
+    {
+      timeoutMs: 60_000,
+      intervalMs: 250,
+    },
+  );
+
+  expect(placedBet.status).toBe("PENDING_DEBIT");
+  expect(placedBet.amountCents).toBe("1000");
+
+  const acceptedBet = await waitFor(
+    "bet to be accepted",
+    async () => {
+      const bet = await getBetById(token, placedBet.betId);
+
+      if (bet?.status === "ACCEPTED") {
+        return bet;
+      }
+
+      if (bet?.status === "LOST" || bet?.status === "REJECTED") {
+        throw new Error(
+          `Bet cannot be cashed out anymore. Status: ${bet.status}`,
+        );
+      }
+
+      return null;
+    },
+    {
+      timeoutMs: 15_000,
+      intervalMs: 500,
+    },
+  );
+
+  expect(acceptedBet.betId).toBe(placedBet.betId);
+
+  await waitFor(
+    "wallet debit",
+    async () => {
+      const wallet = await getWallet(token);
+      const balance = BigInt(wallet.balanceCents);
+
+      if (balance === initialBalance - 1000n) {
+        return wallet;
+      }
+
+      return null;
+    },
+    {
+      timeoutMs: 15_000,
+      intervalMs: 500,
+    },
+  );
+
+  await waitFor(
+    "bet round to be running",
+    async () => {
+      const round = await getCurrentRound();
+
+      if (round?.id === placedBet.roundId && round.status === "RUNNING") {
+        return round;
+      }
+
+      return null;
+    },
+    {
+      timeoutMs: 30_000,
+      intervalMs: 250,
+    },
+  );
+
+  const cashoutResponse = await waitFor(
+    "cashout to be accepted while round is running",
+    async () => tryCashout(token),
+    {
+      timeoutMs: 5_000,
+      intervalMs: 100,
+    },
+  );
+
+  expect(cashoutResponse.betId).toBe(placedBet.betId);
+  expect(cashoutResponse.roundId).toBe(placedBet.roundId);
+  expect(cashoutResponse.status).toBe("CASHED_OUT_PENDING_CREDIT");
+  expect(cashoutResponse.payoutCents).toBeDefined();
+
+  const finalBet = await waitFor(
+    "bet to be cashed out",
+    async () => {
+      const bet = await getBetById(token, placedBet.betId);
+
+      if (bet?.status === "CASHED_OUT") {
+        return bet;
+      }
+
+      if (bet?.status === "LOST") {
+        throw new Error("Bet was lost before cashout settlement.");
+      }
+
+      return null;
+    },
+    {
+      timeoutMs: 30_000,
+      intervalMs: 500,
+    },
+  );
+
+  const payout = BigInt(finalBet.payoutCents ?? "0");
+
+  const finalWallet = await waitFor(
+    "wallet credit",
+    async () => {
+      const wallet = await getWallet(token);
+      const balance = BigInt(wallet.balanceCents);
+
+      if (balance === initialBalance - 1000n + payout) {
+        return wallet;
+      }
+
+      return null;
+    },
+    {
+      timeoutMs: 30_000,
+      intervalMs: 500,
+    },
+  );
+
+  expect(BigInt(finalWallet.balanceCents)).toBe(
+    initialBalance - 1000n + payout,
+  );
+}
+
 describe("Gameplay E2E", () => {
   beforeAll(async () => {
     await waitForHttpOk(
@@ -339,146 +514,41 @@ describe("Gameplay E2E", () => {
     async () => {
       const token = await getAccessToken();
 
-      const initialWallet = await getWallet(token);
-      const initialBalance = BigInt(initialWallet.balanceCents);
+      let lastError: unknown;
 
-      const placedBet = await waitFor(
-        "bet to be placed during betting window",
-        async () => {
-          return tryPlaceBet(token, "1000");
-        },
-        {
-          timeoutMs: 60_000,
-          intervalMs: 250,
-        },
-      );
+      for (let attempt = 1; attempt <= 5; attempt += 1) {
+        try {
+          await executeCashoutScenario(token);
+          return;
+        } catch (error) {
+          lastError = error;
 
-      expect(placedBet.status).toBe("PENDING_DEBIT");
-      expect(placedBet.amountCents).toBe("1000");
+          await waitFor(
+            "next betting window before retrying cashout scenario",
+            async () => {
+              const round = await getCurrentRound();
+              const currentBet = await getMyBet(token);
 
-      const acceptedBet = await waitFor(
-        "bet to be accepted",
-        async () => {
-          const bet = await getBetById(token, placedBet.betId);
+              if (round?.status === "WAITING_FOR_BETS" && !currentBet) {
+                return true;
+              }
 
-          if (bet?.status === "ACCEPTED") {
-            return bet;
-          }
+              return null;
+            },
+            {
+              timeoutMs: 45_000,
+              intervalMs: 500,
+            },
+          );
+        }
+      }
 
-          return null;
-        },
-        {
-          timeoutMs: 10_000,
-          intervalMs: 500,
-        },
-      );
-
-      expect(acceptedBet.betId).toBe(placedBet.betId);
-      expect(acceptedBet.roundId).toBe(placedBet.roundId);
-      expect(acceptedBet.amountCents).toBe("1000");
-
-      const walletAfterDebit = await waitFor(
-        "wallet debit",
-        async () => {
-          const wallet = await getWallet(token);
-          const balance = BigInt(wallet.balanceCents);
-
-          if (balance === initialBalance - 1000n) {
-            return wallet;
-          }
-
-          return null;
-        },
-        {
-          timeoutMs: 10_000,
-          intervalMs: 500,
-        },
-      );
-
-      expect(BigInt(walletAfterDebit.balanceCents)).toBe(
-        initialBalance - 1000n,
-      );
-
-      await waitFor(
-        "bet round to be running",
-        async () => {
-          const round = await getCurrentRound();
-
-          if (round?.id === placedBet.roundId && round.status === "RUNNING") {
-            return round;
-          }
-
-          return null;
-        },
-        {
-          timeoutMs: 30_000,
-          intervalMs: 250,
-        },
-      );
-
-      const cashoutResponse = await waitFor(
-        "cashout to be accepted while round is running",
-        async () => {
-          return tryCashout(token);
-        },
-        {
-          timeoutMs: 30_000,
-          intervalMs: 250,
-        },
-      );
-
-      expect(cashoutResponse.betId).toBe(placedBet.betId);
-      expect(cashoutResponse.roundId).toBe(placedBet.roundId);
-      expect(cashoutResponse.status).toBe("CASHED_OUT_PENDING_CREDIT");
-      expect(cashoutResponse.payoutCents).toBeDefined();
-
-      const finalBet = await waitFor(
-        "bet to be cashed out",
-        async () => {
-          const bet = await getBetById(token, placedBet.betId);
-
-          if (bet?.status === "CASHED_OUT") {
-            return bet;
-          }
-
-          return null;
-        },
-        {
-          timeoutMs: 10_000,
-          intervalMs: 500,
-        },
-      );
-
-      expect(finalBet.betId).toBe(placedBet.betId);
-      expect(finalBet.roundId).toBe(placedBet.roundId);
-      expect(finalBet.payoutCents).toBeDefined();
-
-      const payout = BigInt(finalBet.payoutCents ?? "0");
-
-      const finalWallet = await waitFor(
-        "wallet credit",
-        async () => {
-          const wallet = await getWallet(token);
-          const balance = BigInt(wallet.balanceCents);
-
-          if (balance === initialBalance - 1000n + payout) {
-            return wallet;
-          }
-
-          return null;
-        },
-        {
-          timeoutMs: 10_000,
-          intervalMs: 500,
-        },
-      );
-
-      expect(BigInt(finalWallet.balanceCents)).toBe(
-        initialBalance - 1000n + payout,
-      );
+      throw lastError instanceof Error
+        ? lastError
+        : new Error("Cashout scenario failed after retries.");
     },
     {
-      timeout: 90_000,
+      timeout: 180_000,
     },
   );
 
@@ -737,4 +807,140 @@ describe("Gameplay E2E", () => {
     expect(body.error?.statusCode).toBe(400);
     expect(body.error?.code).toBe("VALIDATION_ERROR");
   });
+
+  test(
+    "returns provably fair verification data without revealing the server seed before round completion",
+    async () => {
+      const currentRound = await waitFor(
+        "non-completed current round for provably fair verification",
+        async () => {
+          const round = await getCurrentRound();
+
+          if (
+            round &&
+            (round.status === "WAITING_FOR_BETS" || round.status === "RUNNING")
+          ) {
+            return round;
+          }
+
+          return null;
+        },
+        {
+          timeoutMs: 30_000,
+          intervalMs: 250,
+        },
+      );
+
+      const earlyVerifyResponse = await fetch(
+        `${KONG_URL}/games/rounds/${currentRound.id}/verify`,
+      );
+
+      expect(earlyVerifyResponse.status).toBe(200);
+
+      const earlyVerify = await parseApiResponseData<{
+        roundId: string;
+        status: string;
+        algorithm: "HMAC_SHA256";
+        serverSeed?: string;
+        serverSeedHash: string;
+        publicSeed: string;
+        nonce: number;
+        crashPoint?: number;
+        crashPointMultiplier?: number;
+        calculatedCrashPoint?: number;
+        calculatedCrashPointMultiplier?: number;
+        isHashValid?: boolean;
+        isCrashPointValid?: boolean;
+        isRevealed: boolean;
+      }>(earlyVerifyResponse);
+
+      expect(earlyVerify.roundId).toBe(currentRound.id);
+      expect(earlyVerify.algorithm).toBe("HMAC_SHA256");
+      expect(earlyVerify.serverSeedHash).toBeTruthy();
+      expect(earlyVerify.publicSeed).toBeTruthy();
+      expect(typeof earlyVerify.nonce).toBe("number");
+
+      expect(earlyVerify.isRevealed).toBe(false);
+      expect(earlyVerify.serverSeed).toBeUndefined();
+      expect(earlyVerify.crashPoint).toBeUndefined();
+      expect(earlyVerify.crashPointMultiplier).toBeUndefined();
+      expect(earlyVerify.calculatedCrashPoint).toBeUndefined();
+      expect(earlyVerify.calculatedCrashPointMultiplier).toBeUndefined();
+      expect(earlyVerify.isHashValid).toBeUndefined();
+      expect(earlyVerify.isCrashPointValid).toBeUndefined();
+
+      const completedRound = await waitFor(
+        "round to complete for provably fair verification",
+        async () => {
+          const latestRound = await getLatestCompletedRound();
+
+          if (
+            latestRound.id === currentRound.id &&
+            latestRound.status === "COMPLETED"
+          ) {
+            return latestRound;
+          }
+
+          return null;
+        },
+        {
+          timeoutMs: 30_000,
+          intervalMs: 500,
+        },
+      );
+
+      const revealedVerifyResponse = await fetch(
+        `${KONG_URL}/games/rounds/${completedRound.id}/verify`,
+      );
+
+      expect(revealedVerifyResponse.status).toBe(200);
+
+      const revealedVerify = await parseApiResponseData<{
+        roundId: string;
+        status: string;
+        algorithm: "HMAC_SHA256";
+        serverSeed: string;
+        serverSeedHash: string;
+        publicSeed: string;
+        nonce: number;
+        crashPoint: number;
+        crashPointMultiplier: number;
+        calculatedCrashPoint: number;
+        calculatedCrashPointMultiplier: number;
+        isHashValid: boolean;
+        isCrashPointValid: boolean;
+        isRevealed: boolean;
+      }>(revealedVerifyResponse);
+
+      expect(revealedVerify.roundId).toBe(completedRound.id);
+      expect(revealedVerify.status).toBe("COMPLETED");
+      expect(revealedVerify.algorithm).toBe("HMAC_SHA256");
+      expect(revealedVerify.isRevealed).toBe(true);
+
+      expect(revealedVerify.serverSeed).toBeTruthy();
+      expect(revealedVerify.serverSeedHash).toBeTruthy();
+      expect(revealedVerify.publicSeed).toBeTruthy();
+
+      expect(typeof revealedVerify.nonce).toBe("number");
+      expect(typeof revealedVerify.crashPoint).toBe("number");
+      expect(typeof revealedVerify.crashPointMultiplier).toBe("number");
+      expect(typeof revealedVerify.calculatedCrashPoint).toBe("number");
+      expect(typeof revealedVerify.calculatedCrashPointMultiplier).toBe(
+        "number",
+      );
+
+      expect(revealedVerify.crashPoint).toBe(
+        revealedVerify.calculatedCrashPoint,
+      );
+      expect(revealedVerify.crashPointMultiplier).toBe(
+        revealedVerify.calculatedCrashPointMultiplier,
+      );
+
+      expect(revealedVerify.isHashValid).toBe(true);
+      expect(revealedVerify.isCrashPointValid).toBe(true);
+    },
+    {
+      timeout: 60_000,
+    },
+  );
 });

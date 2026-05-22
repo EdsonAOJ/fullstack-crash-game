@@ -225,12 +225,13 @@ export class GamesController {
   async getCurrentRound(): Promise<{
     id: string;
     status: string;
-    crashPoint: number;
+    crashPoint?: number;
     currentMultiplier: number;
     startsAt: string;
     startedAt?: string;
     crashedAt?: string;
     completedAt?: string;
+    serverSeedHash?: string;
     bets: Array<{
       id: string;
       playerId: string;
@@ -325,17 +326,19 @@ export class GamesController {
   @Get("rounds/:roundId/verify")
   async verifyRound(@Param("roundId") roundId: string): Promise<{
     roundId: string;
+    status: string;
     algorithm: "HMAC_SHA256";
-    serverSeed: string;
+    serverSeed?: string;
     serverSeedHash: string;
     publicSeed: string;
     nonce: number;
-    crashPoint: number;
-    crashPointMultiplier: number;
-    calculatedCrashPoint: number;
-    calculatedCrashPointMultiplier: number;
-    isHashValid: boolean;
-    isCrashPointValid: boolean;
+    crashPoint?: number;
+    crashPointMultiplier?: number;
+    calculatedCrashPoint?: number;
+    calculatedCrashPointMultiplier?: number;
+    isHashValid?: boolean;
+    isCrashPointValid?: boolean;
+    isRevealed: boolean;
   }> {
     return this.getRoundVerifyUseCase.execute({
       roundId,

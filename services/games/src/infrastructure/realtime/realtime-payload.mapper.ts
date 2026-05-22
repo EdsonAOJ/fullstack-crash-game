@@ -7,15 +7,21 @@ import type {
 
 export class RealtimePayloadMapper {
   static round(snapshot: RoundSnapshot): RoundRealtimePayload {
+    const shouldRevealCrashPoint =
+      snapshot.status === "CRASHED" || snapshot.status === "COMPLETED";
+
     return {
       id: snapshot.id,
       status: snapshot.status,
-      crashPoint: snapshot.crashPoint.toNumber(),
+      crashPoint: shouldRevealCrashPoint
+        ? snapshot.crashPoint.toNumber()
+        : undefined,
       currentMultiplier: snapshot.currentMultiplier.toNumber(),
       startsAt: snapshot.startsAt.toISOString(),
       startedAt: snapshot.startedAt?.toISOString(),
       crashedAt: snapshot.crashedAt?.toISOString(),
       completedAt: snapshot.completedAt?.toISOString(),
+      serverSeedHash: snapshot.serverSeedHash,
     };
   }
 

@@ -8,17 +8,19 @@ export interface GetRoundVerifyInput {
 
 export interface GetRoundVerifyOutput {
   roundId: string;
+  status: string;
   algorithm: "HMAC_SHA256";
-  serverSeed: string;
+  serverSeed?: string;
   serverSeedHash: string;
   publicSeed: string;
   nonce: number;
-  crashPoint: number;
-  crashPointMultiplier: number;
-  calculatedCrashPoint: number;
-  calculatedCrashPointMultiplier: number;
-  isHashValid: boolean;
-  isCrashPointValid: boolean;
+  crashPoint?: number;
+  crashPointMultiplier?: number;
+  calculatedCrashPoint?: number;
+  calculatedCrashPointMultiplier?: number;
+  isHashValid?: boolean;
+  isCrashPointValid?: boolean;
+  isRevealed: boolean;
 }
 
 export class GetRoundVerifyUseCase {
@@ -36,6 +38,21 @@ export class GetRoundVerifyUseCase {
 
     const snapshot = round.toSnapshot();
 
+    const isRevealed =
+      snapshot.status === "CRASHED" || snapshot.status === "COMPLETED";
+
+    if (!isRevealed) {
+      return {
+        roundId: snapshot.id,
+        status: snapshot.status,
+        algorithm: "HMAC_SHA256",
+        serverSeedHash: snapshot.serverSeedHash,
+        publicSeed: snapshot.publicSeed,
+        nonce: snapshot.nonce,
+        isRevealed: false,
+      };
+    }
+
     const verification = this.provablyFairService.verify({
       serverSeed: snapshot.serverSeed,
       serverSeedHash: snapshot.serverSeedHash,
@@ -46,6 +63,7 @@ export class GetRoundVerifyUseCase {
 
     return {
       roundId: snapshot.id,
+      status: snapshot.status,
       algorithm: "HMAC_SHA256",
       serverSeed: snapshot.serverSeed,
       serverSeedHash: snapshot.serverSeedHash,
@@ -58,6 +76,7 @@ export class GetRoundVerifyUseCase {
         verification.calculatedCrashPoint.toScaledInteger(),
       isHashValid: verification.isHashValid,
       isCrashPointValid: verification.isCrashPointValid,
+      isRevealed: true,
     };
   }
 }

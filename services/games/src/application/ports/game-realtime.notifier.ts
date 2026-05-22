@@ -1,14 +1,14 @@
 export interface RoundRealtimePayload {
   id: string;
   status: string;
-  crashPoint: number;
+  crashPoint?: number;
   currentMultiplier: number;
   startsAt: string;
   startedAt?: string;
   crashedAt?: string;
   completedAt?: string;
+  serverSeedHash?: string;
 }
-
 export interface BetRealtimePayload {
   id: string;
   roundId: string;
