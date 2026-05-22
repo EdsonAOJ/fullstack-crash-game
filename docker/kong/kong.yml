@@ -1,6 +1,9 @@
 _format_version: "3.0"
 
 services:
+  # ---------------------------------------------------------------------------
+  # Games Service - general routes
+  # ---------------------------------------------------------------------------
   - name: games-service
     url: http://games:4001
     routes:
@@ -9,6 +12,32 @@ services:
           - /games
         strip_path: true
 
+  # ---------------------------------------------------------------------------
+  # Games Service - state-changing routes with stricter rate limits
+  # ---------------------------------------------------------------------------
+  - name: games-bet-service
+    url: http://games:4001/bet
+    routes:
+      - name: games-bet-route
+        paths:
+          - /games/bet
+        methods:
+          - POST
+        strip_path: true
+
+  - name: games-cashout-service
+    url: http://games:4001/bet/cashout
+    routes:
+      - name: games-cashout-route
+        paths:
+          - /games/bet/cashout
+        methods:
+          - POST
+        strip_path: true
+
+  # ---------------------------------------------------------------------------
+  # Wallets Service - general routes
+  # ---------------------------------------------------------------------------
   - name: wallets-service
     url: http://wallets:4002
     routes:
@@ -16,3 +45,47 @@ services:
         paths:
           - /wallets
         strip_path: true
+
+  # ---------------------------------------------------------------------------
+  # Wallets Service - state-changing route with stricter rate limit
+  # ---------------------------------------------------------------------------
+  - name: wallets-create-service
+    url: http://wallets:4002
+    routes:
+      - name: wallets-create-route
+        paths:
+          - /wallets
+        methods:
+          - POST
+        strip_path: true
+
+plugins:
+  # ---------------------------------------------------------------------------
+  # General API protection
+  # ---------------------------------------------------------------------------
+  - name: rate-limiting
+    route: games-bet-route
+    config:
+      minute: 600
+      policy: local
+      limit_by: ip
+      fault_tolerant: true
+      hide_client_headers: false
+
+  - name: rate-limiting
+    route: games-cashout-route
+    config:
+      minute: 600
+      policy: local
+      limit_by: ip
+      fault_tolerant: true
+      hide_client_headers: false
+
+  - name: rate-limiting
+    route: wallets-create-route
+    config:
+      minute: 120
+      policy: local
+      limit_by: ip
+      fault_tolerant: true
+      hide_client_headers: false
