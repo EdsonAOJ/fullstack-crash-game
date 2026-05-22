@@ -7,11 +7,12 @@
     "frontend"
   ],
   "scripts": {
-    "docker:up": "docker compose up -d --build",
+    "docker:up": "docker compose up -d --build postgres rabbitmq keycloak games wallets && docker compose up -d --force-recreate kong",
     "docker:down": "docker compose down",
     "docker:logs": "docker compose logs -f",
     "docker:ps": "docker compose ps",
     "docker:prune": "docker compose down -v --remove-orphans --rmi local",
+    "docker:restart:kong": "docker compose restart kong",
     "check:games": "cd services/games && bun run typecheck && bun run lint && bun test tests/unit && bun run test:e2e",
     "check:wallets": "cd services/wallets && bun run typecheck && bun run lint && bun test tests/unit && bun run test:e2e",
     "check": "bun run check:games && bun run check:wallets"
