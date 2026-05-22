@@ -11,7 +11,10 @@
     "docker:down": "docker compose down",
     "docker:logs": "docker compose logs -f",
     "docker:ps": "docker compose ps",
-    "docker:prune": "docker compose down -v --remove-orphans --rmi local"
+    "docker:prune": "docker compose down -v --remove-orphans --rmi local",
+    "check:games": "cd services/games && bun run typecheck && bun run lint && bun test tests/unit && bun run test:e2e",
+    "check:wallets": "cd services/wallets && bun run typecheck && bun run lint && bun test tests/unit && bun run test:e2e",
+    "check": "bun run check:games && bun run check:wallets"
   },
   "devDependencies": {
     "bun-types": "latest",
