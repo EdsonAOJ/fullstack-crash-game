@@ -1,0 +1,76 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum WalletTransactionType {
+  CREDIT
+  DEBIT
+}
+
+model Wallet {
+  id           String   @id @default(uuid())
+  playerId     String   @unique
+  balanceCents BigInt   @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  transactions WalletTransaction[]
+
+  @@map("wallets")
+}
+
+model WalletTransaction {
+  id            String                @id @default(uuid())
+  walletId      String
+  eventId       String                @unique
+  type          WalletTransactionType
+  amountCents   BigInt
+  balanceBefore BigInt
+  balanceAfter  BigInt
+  referenceType String?
+  referenceId   String?
+  createdAt     DateTime              @default(now())
+
+  wallet Wallet @relation(fields: [walletId], references: [id])
+
+  @@index([walletId])
+  @@index([referenceType, referenceId])
+  @@map("wallet_transactions")
+}
+
+model ProcessedEvent {
+  id            String   @id @default(uuid())
+  eventId       String   @unique
+  eventName     String
+  processedAt   DateTime @default(now())
+  createdAt     DateTime @default(now())
+
+  @@map("processed_events")
+}
+
+enum OutboxEventStatus {
+  PENDING
+  PUBLISHED
+  FAILED
+}
+
+model OutboxEvent {
+  id          String            @id @default(uuid())
+  eventId     String            @unique
+  eventName   String
+  payload     Json
+  status      OutboxEventStatus @default(PENDING)
+  attempts    Int               @default(0)
+  lockedAt    DateTime?
+  publishedAt DateTime?
+  lastError   String?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  @@map("outbox_events")
+}

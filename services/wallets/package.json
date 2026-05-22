@@ -6,17 +6,33 @@
     "dev": "bun run --watch src/main.ts",
     "start": "bun run src/main.ts",
     "test": "bun test tests/unit",
-    "test:e2e": "bun test tests/e2e"
+    "test:e2e": "bun test tests/e2e",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:deploy": "prisma migrate deploy",
+    "prisma:seed": "bun run prisma/seed.ts"
   },
   "dependencies": {
+    "@crash/events": "workspace:*",
     "@nestjs/common": "^11.1.17",
     "@nestjs/core": "^11.1.17",
     "@nestjs/platform-express": "^11.1.17",
+    "@nestjs/swagger": "^11.2.3",
+    "@prisma/client": "^6.19.0",
+    "amqplib": "^0.10.5",
+    "jose": "^5.10.0",
+    "prisma": "^6.19.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2"
   },
   "devDependencies": {
-    "bun-types": "latest",
-    "typescript": "^5.8.3"
+    "@types/amqplib": "^0.10.7",
+    "@eslint/js": "^9.39.1",
+    "eslint": "^9.39.1",
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.46.4",
+    "bun-types": "latest"
   }
 }
