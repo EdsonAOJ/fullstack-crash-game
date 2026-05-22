@@ -1,0 +1,6 @@
+export const WALLET_REPOSITORY = Symbol("WALLET_REPOSITORY");
+export const ID_GENERATOR = Symbol("ID_GENERATOR");
+export const CLOCK = Symbol("CLOCK");
+export const PROCESSED_EVENT_REPOSITORY = Symbol("PROCESSED_EVENT_REPOSITORY");
+export const OUTBOX_REPOSITORY = Symbol("OUTBOX_REPOSITORY");
+export const WALLET_UNIT_OF_WORK = Symbol("WALLET_UNIT_OF_WORK");
