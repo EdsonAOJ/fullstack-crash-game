@@ -1,0 +1,22 @@
+{
+  "workspaces": {
+    "services/games": {
+      "entry": [
+        "src/main.ts",
+        "src/**/*.module.ts",
+        "tests/**/*.test.ts",
+        "prisma/seed.ts"
+      ],
+      "project": ["src/**/*.ts", "tests/**/*.ts", "prisma/**/*.ts"]
+    },
+    "services/wallets": {
+      "entry": [
+        "src/main.ts",
+        "src/**/*.module.ts",
+        "tests/**/*.test.ts",
+        "prisma/seed.ts"
+      ],
+      "project": ["src/**/*.ts", "tests/**/*.ts", "prisma/**/*.ts"]
+    }
+  }
+}
