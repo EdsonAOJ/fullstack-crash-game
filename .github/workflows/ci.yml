@@ -108,7 +108,7 @@ jobs:
 
       - name: Wallets E2E tests
         working-directory: services/wallets
-        run: bun test tests/e2e
+        run: bun test tests:e2e
 
       - name: Dump Docker logs on failure
         if: failure()
