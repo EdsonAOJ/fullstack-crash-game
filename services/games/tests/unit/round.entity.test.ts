@@ -159,4 +159,51 @@ describe("Round entity", () => {
     expect(snapshot.cashoutMultiplier?.toNumber()).toBe(2);
     expect(snapshot.payoutCents).toBe(2000n);
   });
+
+  test("allows player to place another bet after a rejected bet in the same round", () => {
+    const now = new Date("2026-05-22T00:00:00.000Z");
+
+    const round = Round.create({
+      id: "round-1",
+      crashPoint: Multiplier.fromNumber(2),
+      serverSeed: "server-seed",
+      serverSeedHash: "server-seed-hash",
+      publicSeed: "public-seed",
+      nonce: 1,
+      startsAt: new Date("2026-05-22T00:00:10.000Z"),
+      now,
+    });
+
+    const firstBet = Bet.place({
+      id: "bet-1",
+      roundId: "round-1",
+      playerId: "player",
+      amount: BetAmount.fromCents(1_000n),
+      now,
+    });
+
+    round.placeBet(firstBet);
+
+    round.rejectBetDebit(
+      "bet-1",
+      "INSUFFICIENT_BALANCE",
+      new Date("2026-05-22T00:00:01.000Z"),
+    );
+
+    const secondBet = Bet.place({
+      id: "bet-2",
+      roundId: "round-1",
+      playerId: "player",
+      amount: BetAmount.fromCents(500n),
+      now: new Date("2026-05-22T00:00:02.000Z"),
+    });
+
+    round.placeBet(secondBet);
+
+    const snapshot = round.toSnapshot();
+
+    expect(snapshot.bets).toHaveLength(2);
+    expect(snapshot.bets[0].status).toBe("REJECTED");
+    expect(snapshot.bets[1].status).toBe("PENDING_DEBIT");
+  });
 });

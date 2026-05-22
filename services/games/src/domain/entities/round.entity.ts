@@ -120,11 +120,13 @@ export class Round {
       throw new RoundNotAcceptingBetsError();
     }
 
-    const playerAlreadyHasBet = this.bets.some((currentBet) =>
-      currentBet.belongsToPlayer(bet.toSnapshot().playerId),
+    const playerAlreadyHasActiveBet = this.bets.some(
+      (currentBet) =>
+        currentBet.belongsToPlayer(bet.toSnapshot().playerId) &&
+        currentBet.isPendingOrAccepted(),
     );
 
-    if (playerAlreadyHasBet) {
+    if (playerAlreadyHasActiveBet) {
       throw new DuplicatedBetError();
     }
 
