@@ -6,10 +6,12 @@ import { GameRealtimeNotifier } from "../ports/game-realtime.notifier";
 import type { GameUnitOfWork } from "../ports/game-unit-of-work";
 import { IdGenerator } from "../ports/id-generator";
 import { RoundRepository } from "../ports/round.repository";
+import { Multiplier } from "../../domain/value-objects/multiplier.vo";
 
 export interface PlaceBetInput {
   playerId: string;
   amountCents: bigint;
+  autoCashoutMultiplier?: number;
 }
 
 export interface PlaceBetOutput {
@@ -18,6 +20,7 @@ export interface PlaceBetOutput {
   playerId: string;
   amountCents: string;
   status: string;
+  autoCashoutMultiplier?: number;
 }
 
 const WALLET_DEBIT_REQUESTED_EVENT = "wallet.debit.requested";
@@ -47,6 +50,10 @@ export class PlaceBetUseCase {
       roundId: round.toSnapshot().id,
       playerId: input.playerId,
       amount: BetAmount.fromCents(input.amountCents),
+      autoCashoutMultiplier:
+        input.autoCashoutMultiplier !== undefined
+          ? Multiplier.fromNumber(input.autoCashoutMultiplier)
+          : undefined,
       now,
     });
 
@@ -89,6 +96,7 @@ export class PlaceBetUseCase {
       playerId: snapshot.playerId,
       amountCents: snapshot.amount.toCents().toString(),
       status: snapshot.status,
+      autoCashoutMultiplier: snapshot.autoCashoutMultiplier?.toNumber(),
     };
   }
 }

@@ -105,10 +105,12 @@ export class GamesController {
     playerId: string;
     amountCents: string;
     status: string;
+    autoCashoutMultiplier?: number;
   }> {
     return this.placeBetUseCase.execute({
       playerId: request.user.playerId,
       amountCents: BigInt(body.amountCents),
+      autoCashoutMultiplier: body.autoCashoutMultiplier,
     });
   }
 

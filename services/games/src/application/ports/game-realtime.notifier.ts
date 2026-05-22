@@ -15,6 +15,7 @@ export interface BetRealtimePayload {
   playerId: string;
   amountCents: string;
   status: string;
+  autoCashoutMultiplier?: number;
   cashoutMultiplier?: number;
   payoutCents?: string;
   rejectionReason?: string;

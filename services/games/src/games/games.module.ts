@@ -229,6 +229,7 @@ import { HealthService } from "@/infrastructure/health/health.service";
         clock: Clock,
         provablyFairService: ProvablyFairService,
         realtimeNotifier: GameRealtimeNotifier,
+        gameUnitOfWork: GameUnitOfWork,
       ) =>
         new GameEngineService(
           roundRepository,
@@ -236,6 +237,7 @@ import { HealthService } from "@/infrastructure/health/health.service";
           clock,
           provablyFairService,
           realtimeNotifier,
+          gameUnitOfWork,
         ),
       inject: [
         ROUND_REPOSITORY,
@@ -243,6 +245,7 @@ import { HealthService } from "@/infrastructure/health/health.service";
         CLOCK,
         ProvablyFairService,
         GAME_REALTIME_NOTIFIER,
+        GAME_UNIT_OF_WORK,
       ],
     },
 

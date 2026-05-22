@@ -197,6 +197,7 @@ export class PrismaRoundRepository implements RoundRepository {
           playerId: bet.playerId,
           amountCents: bet.amount.toCents(),
           status: bet.status,
+          autoCashoutMultiplier: bet.autoCashoutMultiplier?.toScaledInteger(),
           cashoutMultiplier: bet.cashoutMultiplier?.toScaledInteger(),
           payoutCents: bet.payoutCents,
           rejectionReason: bet.rejectionReason,
@@ -205,6 +206,7 @@ export class PrismaRoundRepository implements RoundRepository {
         },
         update: {
           status: bet.status,
+          autoCashoutMultiplier: bet.autoCashoutMultiplier?.toScaledInteger(),
           cashoutMultiplier: bet.cashoutMultiplier?.toScaledInteger(),
           payoutCents: bet.payoutCents,
           rejectionReason: bet.rejectionReason,

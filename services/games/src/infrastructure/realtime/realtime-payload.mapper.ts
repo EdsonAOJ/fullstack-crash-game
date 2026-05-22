@@ -32,6 +32,7 @@ export class RealtimePayloadMapper {
       playerId: snapshot.playerId,
       amountCents: snapshot.amount.toCents().toString(),
       status: snapshot.status,
+      autoCashoutMultiplier: snapshot.autoCashoutMultiplier?.toNumber(),
       cashoutMultiplier: snapshot.cashoutMultiplier?.toNumber(),
       payoutCents: snapshot.payoutCents?.toString(),
       rejectionReason: snapshot.rejectionReason,

@@ -13,6 +13,7 @@ interface PrismaBetModel {
   playerId: string;
   amountCents: bigint;
   status: BetStatus;
+  autoCashoutMultiplier: number | null;
   cashoutMultiplier: number | null;
   payoutCents: bigint | null;
   rejectionReason: string | null;
@@ -46,6 +47,10 @@ export class PrismaRoundMapper {
       playerId: bet.playerId,
       amount: BetAmount.fromCents(bet.amountCents),
       status: bet.status,
+      autoCashoutMultiplier:
+        bet.autoCashoutMultiplier !== null
+          ? Multiplier.fromScaledInteger(bet.autoCashoutMultiplier)
+          : undefined,
       cashoutMultiplier:
         bet.cashoutMultiplier !== null
           ? Multiplier.fromScaledInteger(bet.cashoutMultiplier)

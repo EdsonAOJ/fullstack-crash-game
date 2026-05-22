@@ -55,6 +55,7 @@ model Bet {
   playerId              String
   amountCents           BigInt
   status                BetStatus
+  autoCashoutMultiplier Int?
   cashoutMultiplier     Int?
   payoutCents           BigInt?
   rejectionReason       String?
@@ -101,3 +102,4 @@ model ProcessedEvent {
 
   @@map("processed_events")
 }
+

@@ -8,6 +8,8 @@ import { ProvablyFairService } from "@/domain/services/provably-fair.service";
 import type { GameRealtimeNotifier } from "../../application/ports/game-realtime.notifier";
 import { RealtimePayloadMapper } from "../realtime/realtime-payload.mapper";
 import { readPositiveNumberFromEnv } from "../config/read-env";
+import type { GameUnitOfWork } from "../../application/ports/game-unit-of-work";
+import { WALLET_EVENT_NAMES } from "@crash/events";
 
 @Injectable()
 export class GameEngineService implements OnModuleInit, OnModuleDestroy {
@@ -39,6 +41,7 @@ export class GameEngineService implements OnModuleInit, OnModuleDestroy {
     private readonly clock: Clock,
     private readonly provablyFairService: ProvablyFairService,
     private readonly realtimeNotifier: GameRealtimeNotifier,
+    private readonly gameUnitOfWork: GameUnitOfWork,
   ) {}
 
   onModuleInit(): void {
@@ -98,7 +101,6 @@ export class GameEngineService implements OnModuleInit, OnModuleDestroy {
 
       return;
     }
-
     if (snapshot.status === "RUNNING") {
       if (!snapshot.startedAt) {
         return;
@@ -111,13 +113,47 @@ export class GameEngineService implements OnModuleInit, OnModuleDestroy {
 
       round.updateMultiplier(nextMultiplier, now);
 
-      await this.roundRepository.save(round);
-
       const updatedSnapshot = round.toSnapshot();
+
+      const autoCashedOutBets = updatedSnapshot.bets.filter(
+        (bet) => bet.status === "CASHED_OUT_PENDING_CREDIT",
+      );
+
+      await this.gameUnitOfWork.transaction(async (transaction) => {
+        await transaction.roundRepository.save(round);
+
+        for (const bet of autoCashedOutBets) {
+          if (!bet.payoutCents) {
+            continue;
+          }
+
+          const eventId = this.idGenerator.generate();
+
+          await transaction.outboxRepository.save({
+            eventId,
+            eventName: WALLET_EVENT_NAMES.WALLET_CREDIT_REQUESTED,
+            payload: {
+              eventId,
+              eventName: WALLET_EVENT_NAMES.WALLET_CREDIT_REQUESTED,
+              correlationId: bet.id,
+              playerId: bet.playerId,
+              amountCents: bet.payoutCents.toString(),
+              referenceId: bet.id,
+              occurredAt: now.toISOString(),
+            },
+          });
+        }
+      });
 
       this.realtimeNotifier.notifyRoundMultiplierUpdated(
         RealtimePayloadMapper.round(updatedSnapshot),
       );
+
+      for (const bet of autoCashedOutBets) {
+        this.realtimeNotifier.notifyBetCashedOut(
+          RealtimePayloadMapper.bet(bet),
+        );
+      }
 
       if (updatedSnapshot.status === "CRASHED") {
         this.realtimeNotifier.notifyRoundCrashed(

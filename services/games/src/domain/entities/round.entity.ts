@@ -142,7 +142,7 @@ export class Round {
     this.updatedAt = now;
   }
 
-  updateMultiplier(multiplier: Multiplier, now: Date): void {
+  updateMultiplier(multiplier: Multiplier, now: Date): Bet[] {
     if (this.status !== "RUNNING") {
       throw new RoundNotRunningError();
     }
@@ -150,9 +150,13 @@ export class Round {
     this.currentMultiplier = multiplier;
     this.updatedAt = now;
 
+    const autoCashedOutBets = this.cashoutEligibleAutoBets(now);
+
     if (this.currentMultiplier.isGreaterThanOrEqual(this.crashPoint)) {
       this.crash(now);
     }
+
+    return autoCashedOutBets;
   }
 
   cashout(playerId: string, now: Date): Bet {
@@ -237,6 +241,27 @@ export class Round {
     this.updatedAt = now;
 
     return bet;
+  }
+
+  cashoutEligibleAutoBets(now: Date): Bet[] {
+    if (this.status !== "RUNNING") {
+      return [];
+    }
+
+    const cashedOutBets: Bet[] = [];
+
+    for (const bet of this.bets) {
+      if (bet.shouldAutoCashout(this.currentMultiplier)) {
+        bet.requestCashout(this.currentMultiplier, now);
+        cashedOutBets.push(bet);
+      }
+    }
+
+    if (cashedOutBets.length > 0) {
+      this.updatedAt = now;
+    }
+
+    return cashedOutBets;
   }
 
   toSnapshot(): RoundSnapshot {

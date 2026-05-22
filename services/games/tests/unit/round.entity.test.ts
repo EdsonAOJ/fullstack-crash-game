@@ -121,4 +121,42 @@ describe("Round entity", () => {
 
     expect(() => round.cashout("player-1", now)).toThrow(RoundNotRunningError);
   });
+
+  test("automatically cashes out accepted bets when multiplier reaches auto cashout target", () => {
+    const now = new Date("2026-01-01T00:00:00.000Z");
+
+    const round = createTestRound({
+      id: "round-1",
+      crashPoint: Multiplier.fromNumber(3),
+      startsAt: new Date("2026-01-01T00:00:10.000Z"),
+      now,
+    });
+
+    const bet = Bet.place({
+      id: "bet-1",
+      roundId: "round-1",
+      playerId: "player-1",
+      amount: BetAmount.fromCents(1000n),
+      autoCashoutMultiplier: Multiplier.fromNumber(2),
+      now,
+    });
+
+    round.placeBet(bet);
+    bet.acceptDebit(now);
+    round.start(now);
+
+    const autoCashedOutBets = round.updateMultiplier(
+      Multiplier.fromNumber(2),
+      now,
+    );
+
+    expect(autoCashedOutBets).toHaveLength(1);
+
+    const snapshot = bet.toSnapshot();
+
+    expect(snapshot.status).toBe("CASHED_OUT_PENDING_CREDIT");
+    expect(snapshot.autoCashoutMultiplier?.toNumber()).toBe(2);
+    expect(snapshot.cashoutMultiplier?.toNumber()).toBe(2);
+    expect(snapshot.payoutCents).toBe(2000n);
+  });
 });

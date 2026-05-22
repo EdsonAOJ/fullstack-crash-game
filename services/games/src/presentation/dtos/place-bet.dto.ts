@@ -11,6 +11,7 @@ export const placeBetBodySchema = z.object({
     .refine((value) => BigInt(value) > 0n, {
       message: "amountCents must be greater than zero.",
     }),
+  autoCashoutMultiplier: z.number().min(1).max(100).optional(),
 });
 
 export type PlaceBetBodyDto = z.infer<typeof placeBetBodySchema>;

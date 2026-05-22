@@ -495,6 +495,12 @@ export class RoundVerifyEnvelopeResponseDto {
   })
   data!: RoundVerifyResponseDto;
 
+  @ApiPropertyOptional({
+    example: 2,
+    description: "Optional multiplier target for automatic cashout.",
+  })
+  autoCashoutMultiplier?: number;
+
   @ApiProperty({
     example: null,
     nullable: true,

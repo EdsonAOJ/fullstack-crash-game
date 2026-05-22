@@ -16,6 +16,7 @@ export interface BetProps {
   playerId: string;
   amount: BetAmount;
   status: BetStatus;
+  autoCashoutMultiplier?: Multiplier;
   cashoutMultiplier?: Multiplier;
   payoutCents?: bigint;
   rejectionReason?: string;
@@ -34,6 +35,7 @@ export class Bet {
   private rejectionReason?: string;
   private readonly createdAt: Date;
   private updatedAt: Date;
+  private readonly autoCashoutMultiplier?: Multiplier;
 
   private constructor(props: BetProps) {
     this.id = props.id;
@@ -46,6 +48,7 @@ export class Bet {
     this.rejectionReason = props.rejectionReason;
     this.createdAt = props.createdAt;
     this.updatedAt = props.updatedAt;
+    this.autoCashoutMultiplier = props.autoCashoutMultiplier;
   }
 
   static place(props: {
@@ -53,6 +56,7 @@ export class Bet {
     roundId: string;
     playerId: string;
     amount: BetAmount;
+    autoCashoutMultiplier?: Multiplier;
     now: Date;
   }): Bet {
     return new Bet({
@@ -60,10 +64,19 @@ export class Bet {
       roundId: props.roundId,
       playerId: props.playerId,
       amount: props.amount,
+      autoCashoutMultiplier: props.autoCashoutMultiplier,
       status: "PENDING_DEBIT",
       createdAt: props.now,
       updatedAt: props.now,
     });
+  }
+
+  shouldAutoCashout(currentMultiplier: Multiplier): boolean {
+    return (
+      this.status === "ACCEPTED" &&
+      this.autoCashoutMultiplier !== undefined &&
+      currentMultiplier.isGreaterThanOrEqual(this.autoCashoutMultiplier)
+    );
   }
 
   static restore(props: BetProps): Bet {
@@ -139,6 +152,7 @@ export class Bet {
       rejectionReason: this.rejectionReason,
       createdAt: this.createdAt,
       updatedAt: this.updatedAt,
+      autoCashoutMultiplier: this.autoCashoutMultiplier,
     };
   }
 }
