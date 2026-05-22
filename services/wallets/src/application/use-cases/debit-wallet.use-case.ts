@@ -32,6 +32,25 @@ export class DebitWalletUseCase {
       throw new WalletNotFoundError(input.playerId);
     }
 
+    if (input.referenceType && input.referenceId) {
+      const transactionAlreadyExists =
+        await this.walletRepository.existsTransactionByBusinessReference({
+          type: "DEBIT",
+          referenceType: input.referenceType,
+          referenceId: input.referenceId,
+        });
+
+      if (transactionAlreadyExists) {
+        const snapshot = wallet.toSnapshot();
+
+        return {
+          walletId: snapshot.id,
+          playerId: snapshot.playerId,
+          balanceCents: snapshot.balance.toCents().toString(),
+        };
+      }
+    }
+
     wallet.debit({
       transactionId: this.idGenerator.generate(),
       eventId: input.eventId,

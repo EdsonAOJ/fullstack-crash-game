@@ -62,6 +62,7 @@ export class CashoutBetUseCase {
           correlationId: snapshot.id,
           playerId: snapshot.playerId,
           amountCents: payoutCents.toString(),
+          referenceType: "CASHOUT",
           referenceId: snapshot.id,
           occurredAt: now.toISOString(),
         },

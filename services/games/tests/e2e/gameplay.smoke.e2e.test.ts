@@ -18,7 +18,7 @@ describe("Gameplay Smoke E2E", () => {
       "Wallets service to be available through Kong",
       `${KONG_URL}/wallets/health`,
     );
-  });
+  }, 90_000);
 
   test("returns Games health through Kong", async () => {
     const response = await fetch(`${KONG_URL}/games/health`);

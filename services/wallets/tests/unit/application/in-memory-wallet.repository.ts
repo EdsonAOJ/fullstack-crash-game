@@ -4,6 +4,29 @@ import { WalletRepository } from "../../../src/application/ports/wallet.reposito
 export class InMemoryWalletRepository implements WalletRepository {
   public readonly wallets: Wallet[] = [];
 
+  async existsTransactionByBusinessReference(reference: {
+    type: "CREDIT" | "DEBIT";
+    referenceType: string;
+    referenceId: string;
+  }): Promise<boolean> {
+    for (const wallet of this.wallets.values()) {
+      const snapshot = wallet.toSnapshot();
+
+      const transactionExists = snapshot.transactions.some(
+        (transaction) =>
+          transaction.type === reference.type &&
+          transaction.referenceType === reference.referenceType &&
+          transaction.referenceId === reference.referenceId,
+      );
+
+      if (transactionExists) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
   async findById(id: string): Promise<Wallet | null> {
     return this.wallets.find((wallet) => wallet.toSnapshot().id === id) ?? null;
   }

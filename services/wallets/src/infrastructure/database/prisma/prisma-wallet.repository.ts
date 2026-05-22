@@ -1,6 +1,9 @@
 import { Injectable } from "@nestjs/common";
 import { Wallet } from "../../../domain/entities/wallet.entity";
-import { WalletRepository } from "../../../application/ports/wallet.repository";
+import {
+  WalletBusinessTransactionReference,
+  WalletRepository,
+} from "../../../application/ports/wallet.repository";
 import { PrismaWalletMapper } from "./prisma-wallet.mapper";
 import type { PrismaClientLike } from "./prisma-client";
 
@@ -44,6 +47,23 @@ export class PrismaWalletRepository implements WalletRepository {
     }
 
     return PrismaWalletMapper.toDomain(wallet);
+  }
+
+  async existsTransactionByBusinessReference(
+    reference: WalletBusinessTransactionReference,
+  ): Promise<boolean> {
+    const transaction = await this.prisma.walletTransaction.findFirst({
+      where: {
+        type: reference.type,
+        referenceType: reference.referenceType,
+        referenceId: reference.referenceId,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    return transaction !== null;
   }
 
   async save(wallet: Wallet): Promise<void> {

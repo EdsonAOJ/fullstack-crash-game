@@ -41,6 +41,7 @@ model WalletTransaction {
   @@index([walletId])
   @@index([referenceType, referenceId])
   @@map("wallet_transactions")
+  @@unique([type, referenceType, referenceId])
 }
 
 model ProcessedEvent {

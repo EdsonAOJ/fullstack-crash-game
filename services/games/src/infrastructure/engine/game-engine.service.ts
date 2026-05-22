@@ -111,12 +111,11 @@ export class GameEngineService implements OnModuleInit, OnModuleDestroy {
         now,
       });
 
-      round.updateMultiplier(nextMultiplier, now);
-
+      const autoCashedOutEntities = round.updateMultiplier(nextMultiplier, now);
       const updatedSnapshot = round.toSnapshot();
 
-      const autoCashedOutBets = updatedSnapshot.bets.filter(
-        (bet) => bet.status === "CASHED_OUT_PENDING_CREDIT",
+      const autoCashedOutBets = autoCashedOutEntities.map((bet) =>
+        bet.toSnapshot(),
       );
 
       await this.gameUnitOfWork.transaction(async (transaction) => {
@@ -138,6 +137,7 @@ export class GameEngineService implements OnModuleInit, OnModuleDestroy {
               correlationId: bet.id,
               playerId: bet.playerId,
               amountCents: bet.payoutCents.toString(),
+              referenceType: "CASHOUT",
               referenceId: bet.id,
               occurredAt: now.toISOString(),
             },

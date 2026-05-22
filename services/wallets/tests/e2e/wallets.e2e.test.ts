@@ -287,12 +287,8 @@ describe("Wallets E2E", () => {
     await waitForHttpOk(
       "Wallets service to be available through Kong",
       `${KONG_URL}/wallets/health`,
-      {
-        timeoutMs: 90_000,
-        intervalMs: 1000,
-      },
     );
-  });
+  }, 90_000);
 
   test("returns the authenticated player's wallet", async () => {
     const token = await getAccessToken();
