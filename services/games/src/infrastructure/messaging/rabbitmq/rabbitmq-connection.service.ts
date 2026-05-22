@@ -91,8 +91,18 @@ export class RabbitMQConnectionService
     console.log("Games RabbitMQ connection initialized.");
   }
 
+  async healthCheck(): Promise<"ok" | "down"> {
+    try {
+      await this.connect();
+
+      return this.channel ? "ok" : "down";
+    } catch {
+      return "down";
+    }
+  }
+
   async publish<TEvent>(routingKey: string, event: TEvent): Promise<boolean> {
-    await this.connect();
+    await this.healthCheck();
 
     return this.getChannel().publish(
       RABBITMQ_EXCHANGE,
@@ -109,7 +119,7 @@ export class RabbitMQConnectionService
     queue: string,
     handler: (message: ConsumeMessage) => Promise<void>,
   ): Promise<void> {
-    await this.connect();
+    await this.healthCheck();
 
     const channel = this.getChannel();
 

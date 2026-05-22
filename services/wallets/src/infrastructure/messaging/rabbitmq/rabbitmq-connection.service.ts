@@ -44,6 +44,16 @@ export class RabbitMQConnectionService
     }
   }
 
+  async healthCheck(): Promise<"ok" | "down"> {
+    try {
+      await this.connect();
+
+      return this.channel ? "ok" : "down";
+    } catch {
+      return "down";
+    }
+  }
+
   private async initializeConnection(): Promise<void> {
     const rabbitMqUrl =
       process.env.RABBITMQ_URL ?? "amqp://admin:admin@rabbitmq:5672";
@@ -85,7 +95,7 @@ export class RabbitMQConnectionService
   }
 
   async publish<TEvent>(routingKey: string, event: TEvent): Promise<boolean> {
-    await this.connect();
+    await this.healthCheck();
 
     const channel = this.getChannel();
 
@@ -104,7 +114,7 @@ export class RabbitMQConnectionService
     queue: string,
     handler: (message: ConsumeMessage) => Promise<void>,
   ): Promise<void> {
-    await this.connect();
+    await this.healthCheck();
 
     const channel = this.getChannel();
 

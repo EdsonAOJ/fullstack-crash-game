@@ -48,6 +48,7 @@ import {
   RoundsHistoryEnvelopeResponseDto,
   RoundVerifyEnvelopeResponseDto,
 } from "../dtos/swagger/game-response.dto";
+import { HealthService } from "@/infrastructure/health/health.service";
 
 @Controller()
 export class GamesController {
@@ -60,6 +61,7 @@ export class GamesController {
     private readonly getRoundsHistoryUseCase: GetRoundsHistoryUseCase,
     private readonly getRoundVerifyUseCase: GetRoundVerifyUseCase,
     private readonly getBetByIdUseCase: GetBetByIdUseCase,
+    private readonly healthService: HealthService,
   ) {}
 
   @ApiOperation({
@@ -69,11 +71,8 @@ export class GamesController {
     type: HealthEnvelopeResponseDto,
   })
   @Get("health")
-  health() {
-    return {
-      status: "ok",
-      service: "games",
-    };
+  async healthServicehealth() {
+    return this.healthService.check();
   }
 
   @ApiOperation({

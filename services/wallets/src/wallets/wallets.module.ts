@@ -32,6 +32,7 @@ import { OutboxRepository } from "@/application/ports/outbox.repository";
 import { OutboxPublisherRunner } from "@/infrastructure/outbox/outbox-publisher.runner";
 import { WalletResultEventsPublisher } from "@/application/ports/wallet-result-events.publisher";
 import { WalletEventsConsumer } from "@/infrastructure/messaging/rabbitmq/wallet-events.consumer";
+import { HealthService } from "@/infrastructure/health/health.service";
 
 @Module({
   controllers: [WalletsController],
@@ -43,6 +44,7 @@ import { WalletEventsConsumer } from "@/infrastructure/messaging/rabbitmq/wallet
     WalletEventsPublisher,
     JwtAuthGuard,
     OutboxPublisherRunner,
+    HealthService,
     {
       provide: WALLET_REPOSITORY,
       useFactory: (prisma: PrismaService) => new PrismaWalletRepository(prisma),

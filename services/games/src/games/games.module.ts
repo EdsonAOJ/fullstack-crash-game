@@ -45,6 +45,7 @@ import { GameEventsGateway } from "../infrastructure/realtime/game-events.gatewa
 import { GamesController } from "../presentation/controllers/games.controller";
 import { PrismaProcessedEventRepository } from "@/infrastructure/database/prisma/prisma-processed-event.repository";
 import { WalletResultProcessor } from "@/application/services/wallet-result-processor.service";
+import { HealthService } from "@/infrastructure/health/health.service";
 
 @Module({
   controllers: [GamesController],
@@ -55,10 +56,10 @@ import { WalletResultProcessor } from "@/application/services/wallet-result-proc
     ProvablyFairService,
     RabbitMQWalletEventsPublisher,
     RabbitMQConnectionService,
-
     GameEventsGateway,
     JwtAuthGuard,
     OutboxPublisherRunner,
+    HealthService,
     {
       provide: GAME_REALTIME_NOTIFIER,
       useExisting: GameEventsGateway,

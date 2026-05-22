@@ -13,4 +13,14 @@ export class PrismaService
   async onModuleDestroy(): Promise<void> {
     await this.$disconnect();
   }
+
+  async healthCheck(): Promise<"ok" | "down"> {
+    try {
+      await this.$queryRaw`SELECT 1`;
+
+      return "ok";
+    } catch {
+      return "down";
+    }
+  }
 }

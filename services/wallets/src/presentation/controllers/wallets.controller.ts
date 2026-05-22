@@ -16,6 +16,7 @@ import {
   HealthEnvelopeResponseDto,
   WalletEnvelopeResponseDto,
 } from "../dtos/swagger/wallet-response.dto";
+import { HealthService } from "@/infrastructure/health/health.service";
 
 @ApiTags("Wallets")
 @Controller()
@@ -23,6 +24,7 @@ export class WalletsController {
   constructor(
     private readonly createWalletUseCase: CreateWalletUseCase,
     private readonly getWalletByPlayerUseCase: GetWalletByPlayerUseCase,
+    private readonly healthService: HealthService,
   ) {}
 
   @Get("health")
@@ -32,14 +34,8 @@ export class WalletsController {
   @ApiOkResponse({
     type: HealthEnvelopeResponseDto,
   })
-  health(): {
-    status: string;
-    service: string;
-  } {
-    return {
-      status: "ok",
-      service: "wallets",
-    };
+  async healthServicehealth() {
+    return this.healthService.check();
   }
 
   @Post()
