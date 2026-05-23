@@ -13,10 +13,13 @@
     "docker:ps": "docker compose ps",
     "docker:prune": "docker compose down -v --remove-orphans --rmi local",
     "docker:restart:kong": "docker compose restart kong",
-    "check:games": "cd services/games && bun run typecheck && bun run lint && bun test tests/unit && bun run test:e2e",
-    "check:wallets": "cd services/wallets && bun run typecheck && bun run lint && bun test tests/unit && bun run test:e2e",
-    "check:frontend": "cd frontend && bun run lint && bun run build",
+    "prisma:generate": "cd services/games && bunx prisma generate --schema prisma/schema.prisma && cd ../wallets && bunx prisma generate --schema prisma/schema.prisma",
+    "prisma:generate:games": "cd services/games && bunx prisma generate --schema prisma/schema.prisma",
+    "prisma:generate:wallets": "cd services/wallets && bunx prisma generate --schema prisma/schema.prisma",
+    "check:games": "bun run prisma:generate:games && cd services/games && bun run typecheck && bun run lint && bun test tests/unit && bun run test:e2e",
+    "check:wallets": "bun run prisma:generate:wallets && cd services/wallets && bun run typecheck && bun run lint && bun test tests/unit && bun run test:e2e",
     "check": "bun run check:games && bun run check:wallets",
+    "check:frontend": "cd frontend && bun run lint && bun run build",
     "check:all": "bun run check && bun run check:frontend"
   },
   "devDependencies": {
