@@ -7,7 +7,7 @@
     "frontend"
   ],
   "scripts": {
-    "docker:up": "docker compose up -d --build postgres rabbitmq keycloak games wallets && docker compose up -d --force-recreate kong && docker compose up -d --build frontend",
+    "docker:up": "docker compose up -d --build postgres rabbitmq keycloak games wallets && docker compose up -d --force-recreate kong && docker compose up -d --build --force-recreate frontend",
     "docker:down": "docker compose down",
     "docker:logs": "docker compose logs -f",
     "docker:ps": "docker compose ps",
