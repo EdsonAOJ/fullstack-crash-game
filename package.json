@@ -7,7 +7,7 @@
     "frontend"
   ],
   "scripts": {
-    "docker:up": "docker compose up -d --build postgres rabbitmq keycloak games wallets && docker compose up -d --force-recreate kong",
+    "docker:up": "docker compose up -d --build postgres rabbitmq keycloak games wallets && docker compose up -d --force-recreate kong && docker compose up -d --build frontend",
     "docker:down": "docker compose down",
     "docker:logs": "docker compose logs -f",
     "docker:ps": "docker compose ps",
@@ -15,7 +15,9 @@
     "docker:restart:kong": "docker compose restart kong",
     "check:games": "cd services/games && bun run typecheck && bun run lint && bun test tests/unit && bun run test:e2e",
     "check:wallets": "cd services/wallets && bun run typecheck && bun run lint && bun test tests/unit && bun run test:e2e",
-    "check": "bun run check:games && bun run check:wallets"
+    "check:frontend": "cd frontend && bun run lint && bun run build",
+    "check": "bun run check:games && bun run check:wallets",
+    "check:all": "bun run check && bun run check:frontend"
   },
   "devDependencies": {
     "bun-types": "latest",
