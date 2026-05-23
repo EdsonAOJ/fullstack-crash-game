@@ -53,14 +53,28 @@ async function parseApiEnvelope<TData>(response: Response): Promise<TData> {
 
   throw new Error("Unexpected API response.");
 }
+
 export async function getAccessToken(): Promise<string> {
   const response = await fetch("/api/auth/token", {
     method: "POST",
+    cache: "no-store",
   });
 
-  const data = await parseApiEnvelope<TokenResponse>(response);
+  const body = await response.json();
 
-  return data.accessToken;
+  if (!response.ok) {
+    throw new Error(
+      body?.error?.message ?? body?.message ?? "Erro ao autenticar.",
+    );
+  }
+
+  const accessToken = body?.data?.accessToken;
+
+  if (!accessToken) {
+    throw new Error("Token de acesso não foi retornado pela autenticação.");
+  }
+
+  return accessToken;
 }
 
 export async function getCurrentRound(): Promise<CurrentRound> {
