@@ -13,6 +13,9 @@ WORKDIR /app/frontend
 
 ENV NEXT_TELEMETRY_DISABLED=1
 
+ARG NEXT_PUBLIC_GAMES_SOCKET_URL
+ENV NEXT_PUBLIC_GAMES_SOCKET_URL=$NEXT_PUBLIC_GAMES_SOCKET_URL
+
 COPY --from=deps /app/frontend/node_modules ./node_modules
 COPY frontend ./
 

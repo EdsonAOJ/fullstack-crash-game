@@ -105,8 +105,19 @@ services:
       dockerfile: services/games/Dockerfile
     ports:
       - "4001:4001"
-    env_file:
-      - ./services/games/.env.example
+    environment:
+      PORT: 4001
+      DATABASE_URL: postgresql://admin:admin@postgres:5432/games
+      RABBITMQ_URL: amqp://admin:admin@rabbitmq:5672
+      KEYCLOAK_ISSUER: http://localhost:8080/realms/crash-game
+      KEYCLOAK_JWKS_URL: http://keycloak:8080/realms/crash-game/protocol/openid-connect/certs
+      KEYCLOAK_AUDIENCE: crash-game-client
+      AUTH_DISABLED: "false"
+      GAME_ENGINE_TICK_MS: 100
+      GAME_BETTING_WINDOW_MS: 5000
+      GAME_CRASH_REVEAL_MS: 2000
+      GAME_MULTIPLIER_GROWTH_PER_SECOND: 0.1
+      GAME_MAX_CRASH_MULTIPLIER: 20
     depends_on:
       postgres:
         condition: service_healthy
@@ -134,8 +145,14 @@ services:
       dockerfile: services/wallets/Dockerfile
     ports:
       - "4002:4002"
-    env_file:
-      - ./services/wallets/.env.example
+    environment:
+      PORT: 4002
+      DATABASE_URL: postgresql://admin:admin@postgres:5432/wallets
+      RABBITMQ_URL: amqp://admin:admin@rabbitmq:5672
+      KEYCLOAK_ISSUER: http://localhost:8080/realms/crash-game
+      KEYCLOAK_JWKS_URL: http://keycloak:8080/realms/crash-game/protocol/openid-connect/certs
+      KEYCLOAK_AUDIENCE: crash-game-client
+      AUTH_DISABLED: "false"
     depends_on:
       postgres:
         condition: service_healthy
@@ -157,10 +174,13 @@ services:
   # ---------------------------------------------------------------------------
   # Frontend (Next.js)
   # ---------------------------------------------------------------------------
+  
   frontend:
     build:
       context: .
       dockerfile: frontend/Dockerfile
+      args:
+        NEXT_PUBLIC_GAMES_SOCKET_URL: http://localhost:4001/games
     ports:
       - "3000:3000"
     environment:
