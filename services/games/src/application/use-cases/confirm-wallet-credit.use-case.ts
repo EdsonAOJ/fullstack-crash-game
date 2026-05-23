@@ -22,7 +22,7 @@ export class ConfirmWalletCreditUseCase {
   async execute(
     input: ConfirmWalletCreditInput,
   ): Promise<ConfirmWalletCreditOutput> {
-    const round = await this.roundRepository.findCurrent();
+    const round = await this.roundRepository.findByBetId(input.betId);
 
     if (!round) {
       throw new BetNotFoundError(input.betId);
