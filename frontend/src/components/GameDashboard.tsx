@@ -342,9 +342,27 @@ export function GameDashboard() {
       },
       onRound: (payload) => {
         setRound((currentRound) => applyRealtimeRound(currentRound, payload));
+
+        if (
+          payload.status === "CRASHED" ||
+          payload.status === "COMPLETED" ||
+          payload.status === "WAITING_FOR_BETS"
+        ) {
+          void refresh(accessToken);
+        }
       },
       onBet: (payload) => {
         setRound((currentRound) => applyRealtimeBet(currentRound, payload));
+
+        if (
+          payload.status === "ACCEPTED" ||
+          payload.status === "REJECTED" ||
+          payload.status === "CASHED_OUT" ||
+          payload.status === "CASHED_OUT_PENDING_CREDIT" ||
+          payload.status === "LOST"
+        ) {
+          void refresh(accessToken);
+        }
       },
       onDisconnect: () => {
         setSocketStatus("Desconectado");
@@ -354,7 +372,7 @@ export function GameDashboard() {
     return () => {
       socket.disconnect();
     };
-  }, []);
+  }, [accessToken, refresh]);
 
   async function authenticate(): Promise<void> {
     setIsLoading(true);
