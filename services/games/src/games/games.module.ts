@@ -24,7 +24,6 @@ import { ConfirmWalletDebitUseCase } from "../application/use-cases/confirm-wall
 import { GetBetByIdUseCase } from "../application/use-cases/get-bet-by-id.use-case";
 import { GetCurrentRoundUseCase } from "../application/use-cases/get-current-round.use-case";
 import { GetLatestRoundUseCase } from "../application/use-cases/get-latest-round.use-case";
-import { GetMyCurrentBetUseCase } from "../application/use-cases/get-my-current-bet.use-case";
 import { GetRoundVerifyUseCase } from "../application/use-cases/get-round-verify.use-case";
 import { GetRoundsHistoryUseCase } from "../application/use-cases/get-rounds-history.use-case";
 import { PlaceBetUseCase } from "../application/use-cases/place-bet.use-case";
@@ -50,6 +49,7 @@ import { HealthService } from "@/infrastructure/health/health.service";
 import { PrismaLeaderboardRepository } from "@/infrastructure/database/prisma/prisma-leaderboard.repository";
 import { GetLeaderboardUseCase } from "@/application/use-cases/get-leaderboard.use-case";
 import { LeaderboardRepository } from "@/application/ports/leaderboard.repository";
+import { GetMyBetsHistoryUseCase } from "@/application/use-cases/get-my-bets-history.use-case";
 
 @Module({
   controllers: [GamesController],
@@ -205,9 +205,9 @@ import { LeaderboardRepository } from "@/application/ports/leaderboard.repositor
       inject: [ROUND_REPOSITORY],
     },
     {
-      provide: GetMyCurrentBetUseCase,
+      provide: GetMyBetsHistoryUseCase,
       useFactory: (roundRepository: RoundRepository) =>
-        new GetMyCurrentBetUseCase(roundRepository),
+        new GetMyBetsHistoryUseCase(roundRepository),
       inject: [ROUND_REPOSITORY],
     },
     {

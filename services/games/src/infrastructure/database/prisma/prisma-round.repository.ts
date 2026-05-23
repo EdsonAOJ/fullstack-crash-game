@@ -3,10 +3,28 @@ import { RoundRepository } from "../../../application/ports/round.repository";
 import { Round } from "../../../domain/entities/round.entity";
 import { PrismaRoundMapper } from "./prisma-round.mapper";
 import type { PrismaClientLike } from "./prisma-client";
+import { BetProps } from "@/domain/entities/bet.entity";
 
 @Injectable()
 export class PrismaRoundRepository implements RoundRepository {
   constructor(private readonly prisma: PrismaClientLike) {}
+
+  async findBetsByPlayerId(params: {
+    playerId: string;
+    limit: number;
+  }): Promise<BetProps[]> {
+    const bets = await this.prisma.bet.findMany({
+      where: {
+        playerId: params.playerId,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+      take: params.limit,
+    });
+
+    return bets.map((bet) => PrismaRoundMapper.betToDomainProps(bet));
+  }
 
   async findByBetId(betId: string): Promise<Round | null> {
     const round = await this.prisma.round.findFirst({

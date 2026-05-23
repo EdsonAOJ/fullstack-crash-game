@@ -12,7 +12,6 @@ import { CashoutBetUseCase } from "../../application/use-cases/cashout-bet.use-c
 import { GetBetByIdUseCase } from "../../application/use-cases/get-bet-by-id.use-case";
 import { GetCurrentRoundUseCase } from "../../application/use-cases/get-current-round.use-case";
 import { GetLatestRoundUseCase } from "../../application/use-cases/get-latest-round.use-case";
-import { GetMyCurrentBetUseCase } from "../../application/use-cases/get-my-current-bet.use-case";
 import { GetRoundVerifyUseCase } from "../../application/use-cases/get-round-verify.use-case";
 import { GetRoundsHistoryUseCase } from "../../application/use-cases/get-rounds-history.use-case";
 import { PlaceBetUseCase } from "../../application/use-cases/place-bet.use-case";
@@ -57,6 +56,12 @@ import {
   type GetLeaderboardQueryDto,
 } from "../dtos/get-leaderboard-query.dto";
 
+import { GetMyBetsHistoryUseCase } from "../../application/use-cases/get-my-bets-history.use-case";
+import {
+  getMyBetsQuerySchema,
+  type GetMyBetsQueryDto,
+} from "../dtos/get-my-bets-query.dto";
+
 @ApiTags("Games")
 @Controller()
 export class GamesController {
@@ -64,7 +69,7 @@ export class GamesController {
     private readonly placeBetUseCase: PlaceBetUseCase,
     private readonly cashoutBetUseCase: CashoutBetUseCase,
     private readonly getCurrentRoundUseCase: GetCurrentRoundUseCase,
-    private readonly getMyCurrentBetUseCase: GetMyCurrentBetUseCase,
+    private readonly getMyBetsHistoryUseCase: GetMyBetsHistoryUseCase,
     private readonly getLatestRoundUseCase: GetLatestRoundUseCase,
     private readonly getRoundsHistoryUseCase: GetRoundsHistoryUseCase,
     private readonly getRoundVerifyUseCase: GetRoundVerifyUseCase,
@@ -155,7 +160,7 @@ export class GamesController {
   }
 
   @ApiOperation({
-    summary: "Get the authenticated player's current bet",
+    summary: "Get authenticated player's bets history",
   })
   @ApiBearerAuth("keycloak-jwt")
   @ApiOkResponse({
@@ -164,25 +169,33 @@ export class GamesController {
   @ApiUnauthorizedResponse({
     type: ApiErrorResponseDto,
   })
-  @ApiNotFoundResponse({
+  @ApiBadRequestResponse({
     type: ApiErrorResponseDto,
   })
   @Get("bets/me")
   @UseGuards(JwtAuthGuard)
-  async getMyCurrentBet(@Req() request: AuthenticatedRequest): Promise<{
-    betId: string;
-    roundId: string;
-    playerId: string;
-    amountCents: string;
-    status: string;
-    cashoutMultiplier?: number;
-    payoutCents?: string;
-    rejectionReason?: string;
-    createdAt: string;
-    updatedAt: string;
+  async getMyBetsHistory(
+    @Query(new ZodValidationPipe(getMyBetsQuerySchema))
+    query: GetMyBetsQueryDto,
+    @Req() request: AuthenticatedRequest,
+  ): Promise<{
+    items: Array<{
+      id: string;
+      roundId: string;
+      playerId: string;
+      amountCents: string;
+      status: string;
+      autoCashoutMultiplier?: number;
+      cashoutMultiplier?: number;
+      payoutCents?: string;
+      rejectionReason?: string;
+      createdAt: string;
+      updatedAt: string;
+    }>;
   }> {
-    return this.getMyCurrentBetUseCase.execute({
+    return this.getMyBetsHistoryUseCase.execute({
       playerId: request.user.playerId,
+      limit: query.limit,
     });
   }
 

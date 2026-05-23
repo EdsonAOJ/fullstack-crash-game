@@ -1,8 +1,22 @@
 import { Round } from "../../../src/domain/entities/round.entity";
 import { RoundRepository } from "../../../src/application/ports/round.repository";
+import { BetProps } from "../../../src/domain/entities/bet.entity";
 
 export class InMemoryRoundRepository implements RoundRepository {
   public rounds: Round[] = [];
+
+  async findBetsByPlayerId(params: {
+    playerId: string;
+    limit: number;
+  }): Promise<BetProps[]> {
+    const bets = Array.from(this.rounds.values())
+      .flatMap((round) => round.toSnapshot().bets)
+      .filter((bet) => bet.playerId === params.playerId)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+      .slice(0, params.limit);
+
+    return bets;
+  }
 
   async findByBetId(betId: string): Promise<Round | null> {
     return (

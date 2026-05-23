@@ -41,25 +41,9 @@ interface PrismaRoundModel {
 
 export class PrismaRoundMapper {
   static toDomain(model: PrismaRoundModel): Round {
-    const bets: BetProps[] = model.bets.map((bet) => ({
-      id: bet.id,
-      roundId: bet.roundId,
-      playerId: bet.playerId,
-      amount: BetAmount.fromCents(bet.amountCents),
-      status: bet.status,
-      autoCashoutMultiplier:
-        bet.autoCashoutMultiplier !== null
-          ? Multiplier.fromScaledInteger(bet.autoCashoutMultiplier)
-          : undefined,
-      cashoutMultiplier:
-        bet.cashoutMultiplier !== null
-          ? Multiplier.fromScaledInteger(bet.cashoutMultiplier)
-          : undefined,
-      payoutCents: bet.payoutCents ?? undefined,
-      rejectionReason: bet.rejectionReason ?? undefined,
-      createdAt: bet.createdAt,
-      updatedAt: bet.updatedAt,
-    }));
+    const bets: BetProps[] = model.bets.map((bet) =>
+      PrismaRoundMapper.betToDomainProps(bet),
+    );
 
     const snapshot: RoundSnapshot = {
       id: model.id,
@@ -80,5 +64,27 @@ export class PrismaRoundMapper {
     };
 
     return Round.restore(snapshot);
+  }
+
+  static betToDomainProps(bet: PrismaBetModel): BetProps {
+    return {
+      id: bet.id,
+      roundId: bet.roundId,
+      playerId: bet.playerId,
+      amount: BetAmount.fromCents(bet.amountCents),
+      status: bet.status,
+      autoCashoutMultiplier:
+        bet.autoCashoutMultiplier !== null
+          ? Multiplier.fromScaledInteger(bet.autoCashoutMultiplier)
+          : undefined,
+      cashoutMultiplier:
+        bet.cashoutMultiplier !== null
+          ? Multiplier.fromScaledInteger(bet.cashoutMultiplier)
+          : undefined,
+      payoutCents: bet.payoutCents ?? undefined,
+      rejectionReason: bet.rejectionReason ?? undefined,
+      createdAt: bet.createdAt,
+      updatedAt: bet.updatedAt,
+    };
   }
 }
