@@ -4,6 +4,9 @@ import type {
   CurrentRound,
   LeaderboardResponse,
   PlaceBetResponse,
+  PlayerBetHistoryResponse,
+  RoundHistoryResponse,
+  RoundVerification,
   TokenResponse,
   Wallet,
 } from "./types";
@@ -118,4 +121,35 @@ export async function cashoutBet(
   });
 
   return parseApiEnvelope<CashoutResponse>(response);
+}
+
+export async function getRoundHistory(): Promise<RoundHistoryResponse> {
+  const response = await fetch("/api/proxy/games/rounds/history?limit=20", {
+    cache: "no-store",
+  });
+
+  return parseApiEnvelope<RoundHistoryResponse>(response);
+}
+
+export async function getRoundVerification(
+  roundId: string,
+): Promise<RoundVerification> {
+  const response = await fetch(`/api/proxy/games/rounds/${roundId}/verify`, {
+    cache: "no-store",
+  });
+
+  return parseApiEnvelope<RoundVerification>(response);
+}
+
+export async function getMyBets(
+  accessToken: string,
+): Promise<PlayerBetHistoryResponse> {
+  const response = await fetch("/api/proxy/games/bets/me?limit=10", {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+    cache: "no-store",
+  });
+
+  return parseApiEnvelope<PlayerBetHistoryResponse>(response);
 }

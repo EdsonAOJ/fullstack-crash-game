@@ -89,3 +89,56 @@ export interface CashoutResponse {
 export interface TokenResponse {
   accessToken: string;
 }
+
+export interface RoundHistoryItem {
+  id: string;
+  status: string;
+  crashPoint: number;
+  currentMultiplier: number;
+  startsAt: string;
+  startedAt?: string;
+  crashedAt?: string;
+  completedAt?: string;
+  betsCount: number;
+  cashedOutBetsCount: number;
+  lostBetsCount: number;
+}
+
+export interface RoundHistoryResponse {
+  items: RoundHistoryItem[];
+}
+
+export interface RoundVerification {
+  roundId: string;
+  status: string;
+  algorithm: "HMAC_SHA256";
+  serverSeed?: string;
+  serverSeedHash: string;
+  publicSeed: string;
+  nonce: number;
+  crashPoint?: number;
+  crashPointMultiplier?: number;
+  calculatedCrashPoint?: number;
+  calculatedCrashPointMultiplier?: number;
+  isHashValid?: boolean;
+  isCrashPointValid?: boolean;
+  isRevealed: boolean;
+}
+
+export interface PlayerBetHistoryItem {
+  id: string;
+  roundId: string;
+  playerId: string;
+  amountCents: string;
+  status: string;
+  autoCashoutMultiplier?: number;
+  cashoutMultiplier?: number;
+  payoutCents?: string;
+  rejectionReason?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PlayerBetHistoryResponse {
+  items: PlayerBetHistoryItem[];
+}
