@@ -35,6 +35,11 @@ export class GameEngineService implements OnModuleInit, OnModuleDestroy {
     0.1,
   );
 
+  private readonly maxCrashMultiplier = readPositiveNumberFromEnv(
+    "GAME_MAX_CRASH_MULTIPLIER",
+    20,
+  );
+
   constructor(
     private readonly roundRepository: RoundRepository,
     private readonly idGenerator: IdGenerator,
@@ -111,7 +116,20 @@ export class GameEngineService implements OnModuleInit, OnModuleDestroy {
         now,
       });
 
-      const autoCashedOutEntities = round.updateMultiplier(nextMultiplier, now);
+      const effectiveCrashMultiplier = Math.min(
+        snapshot.crashPoint.toNumber(),
+        this.maxCrashMultiplier,
+      );
+
+      const cappedMultiplier = Multiplier.fromNumber(
+        Math.min(nextMultiplier.toNumber(), effectiveCrashMultiplier),
+      );
+
+      const autoCashedOutEntities = round.updateMultiplier(
+        cappedMultiplier,
+        now,
+      );
+
       const updatedSnapshot = round.toSnapshot();
 
       const autoCashedOutBets = autoCashedOutEntities.map((bet) =>

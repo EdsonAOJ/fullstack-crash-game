@@ -30,7 +30,7 @@ const HOUSE_EDGE_PERCENT = 1;
 export class ProvablyFairService {
   private readonly maxCrashMultiplier = readPositiveNumberFromEnv(
     "GAME_MAX_CRASH_MULTIPLIER",
-    100,
+    20,
   );
 
   getMaxCrashMultiplier(): number {
