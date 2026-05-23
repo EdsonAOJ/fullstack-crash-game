@@ -1,65 +1,67 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getAccessTokenFromCookie } from "@/lib/server-auth";
 
-const HOP_BY_HOP_HEADERS = new Set([
-  "connection",
-  "keep-alive",
-  "proxy-authenticate",
-  "proxy-authorization",
-  "te",
-  "trailer",
-  "transfer-encoding",
-  "upgrade",
-  "host",
-]);
+type RouteContext = {
+  params: Promise<{
+    path: string[];
+  }>;
+};
 
-function buildTargetUrl(request: NextRequest, path: string[]): string {
-  const kongUrl = process.env.KONG_URL ?? "http://localhost:8000";
-  const targetPath = path.join("/");
-  const search = request.nextUrl.search;
+function getKongUrl(): string {
+  const kongUrl = process.env.KONG_URL;
 
-  return `${kongUrl}/${targetPath}${search}`;
+  if (!kongUrl) {
+    throw new Error("Missing required environment variable: KONG_URL");
+  }
+
+  return kongUrl.replace(/\/$/, "");
 }
 
-function buildHeaders(request: NextRequest): Headers {
-  const headers = new Headers();
+function shouldForwardBody(method: string): boolean {
+  return method !== "GET" && method !== "HEAD";
+}
 
-  request.headers.forEach((value, key) => {
-    const lowerKey = key.toLowerCase();
+function createProxyHeaders(request: NextRequest, accessToken: string | null) {
+  const headers = new Headers(request.headers);
 
-    if (!HOP_BY_HOP_HEADERS.has(lowerKey)) {
-      headers.set(key, value);
-    }
-  });
+  headers.delete("host");
+  headers.delete("connection");
+  headers.delete("content-length");
+  headers.delete("cookie");
+
+  if (accessToken && !headers.has("authorization")) {
+    headers.set("authorization", `Bearer ${accessToken}`);
+  }
 
   return headers;
 }
 
-async function proxy(
+async function proxyRequest(
   request: NextRequest,
-  context: {
-    params: Promise<{
-      path: string[];
-    }>;
-  },
+  context: RouteContext,
 ): Promise<NextResponse> {
-  const params = await context.params;
-  const targetUrl = buildTargetUrl(request, params.path);
-  const headers = buildHeaders(request);
+  const { path } = await context.params;
+  const kongUrl = getKongUrl();
+  const accessToken = await getAccessTokenFromCookie();
 
-  const hasBody = request.method !== "GET" && request.method !== "HEAD";
+  const targetUrl = new URL(`${kongUrl}/${path.join("/")}`);
+  targetUrl.search = request.nextUrl.search;
 
   const response = await fetch(targetUrl, {
     method: request.method,
-    headers,
-    body: hasBody ? await request.text() : undefined,
+    headers: createProxyHeaders(request, accessToken),
+    body: shouldForwardBody(request.method) ? await request.text() : undefined,
     cache: "no-store",
   });
 
+  const responseBody = await response.arrayBuffer();
   const responseHeaders = new Headers(response.headers);
+
   responseHeaders.delete("content-encoding");
   responseHeaders.delete("content-length");
+  responseHeaders.delete("transfer-encoding");
 
-  return new NextResponse(response.body, {
+  return new NextResponse(responseBody, {
     status: response.status,
     headers: responseHeaders,
   });
@@ -67,22 +69,35 @@ async function proxy(
 
 export async function GET(
   request: NextRequest,
-  context: {
-    params: Promise<{
-      path: string[];
-    }>;
-  },
+  context: RouteContext,
 ): Promise<NextResponse> {
-  return proxy(request, context);
+  return proxyRequest(request, context);
 }
 
 export async function POST(
   request: NextRequest,
-  context: {
-    params: Promise<{
-      path: string[];
-    }>;
-  },
+  context: RouteContext,
 ): Promise<NextResponse> {
-  return proxy(request, context);
+  return proxyRequest(request, context);
+}
+
+export async function PUT(
+  request: NextRequest,
+  context: RouteContext,
+): Promise<NextResponse> {
+  return proxyRequest(request, context);
+}
+
+export async function PATCH(
+  request: NextRequest,
+  context: RouteContext,
+): Promise<NextResponse> {
+  return proxyRequest(request, context);
+}
+
+export async function DELETE(
+  request: NextRequest,
+  context: RouteContext,
+): Promise<NextResponse> {
+  return proxyRequest(request, context);
 }

@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { AppProviders } from "@/providers/AppProviders";
 
 export const metadata: Metadata = {
   title: "Crash Game",
-  description: "Crash Game frontend for the Jungle Gaming challenge.",
+  description: "Full-stack Crash Game challenge",
 };
 
 export default function RootLayout({
@@ -13,7 +14,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR">
-      <body>{children}</body>
+      <body>
+        <AppProviders>{children}</AppProviders>
+      </body>
     </html>
   );
 }

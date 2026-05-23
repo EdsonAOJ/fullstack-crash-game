@@ -53,29 +53,6 @@ async function parseApiEnvelope<TData>(response: Response): Promise<TData> {
   throw new Error("Unexpected API response.");
 }
 
-export async function getAccessToken(): Promise<string> {
-  const response = await fetch("/api/auth/token", {
-    method: "POST",
-    cache: "no-store",
-  });
-
-  const body = await response.json();
-
-  if (!response.ok) {
-    throw new Error(
-      body?.error?.message ?? body?.message ?? "Erro ao autenticar.",
-    );
-  }
-
-  const accessToken = body?.data?.accessToken;
-
-  if (!accessToken) {
-    throw new Error("Token de acesso não foi retornado pela autenticação.");
-  }
-
-  return accessToken;
-}
-
 export async function getCurrentRound(): Promise<CurrentRound> {
   const response = await fetch("/api/proxy/games/rounds/current", {
     cache: "no-store",
@@ -84,11 +61,8 @@ export async function getCurrentRound(): Promise<CurrentRound> {
   return parseApiEnvelope<CurrentRound>(response);
 }
 
-export async function getWallet(accessToken: string): Promise<Wallet> {
+export async function getWallet(): Promise<Wallet> {
   const response = await fetch("/api/proxy/wallets/me", {
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-    },
     cache: "no-store",
   });
 
@@ -104,14 +78,12 @@ export async function getLeaderboard(): Promise<LeaderboardResponse> {
 }
 
 export async function placeBet(params: {
-  accessToken: string;
   amountCents: string;
   autoCashoutMultiplier?: number;
 }): Promise<PlaceBetResponse> {
   const response = await fetch("/api/proxy/games/bet", {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${params.accessToken}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
@@ -123,14 +95,9 @@ export async function placeBet(params: {
   return parseApiEnvelope<PlaceBetResponse>(response);
 }
 
-export async function cashoutBet(
-  accessToken: string,
-): Promise<CashoutResponse> {
+export async function cashoutBet(): Promise<CashoutResponse> {
   const response = await fetch("/api/proxy/games/bet/cashout", {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-    },
   });
 
   return parseApiEnvelope<CashoutResponse>(response);
@@ -154,13 +121,8 @@ export async function getRoundVerification(
   return parseApiEnvelope<RoundVerification>(response);
 }
 
-export async function getMyBets(
-  accessToken: string,
-): Promise<PlayerBetHistoryResponse> {
+export async function getMyBets(): Promise<PlayerBetHistoryResponse> {
   const response = await fetch("/api/proxy/games/bets/me?limit=10", {
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-    },
     cache: "no-store",
   });
 

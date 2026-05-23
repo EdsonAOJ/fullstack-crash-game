@@ -164,11 +164,12 @@ services:
     ports:
       - "3000:3000"
     environment:
+      APP_PUBLIC_URL: http://localhost:3000
       KONG_URL: http://kong:8000
+      KEYCLOAK_AUTHORIZATION_URL: http://localhost:8080/realms/crash-game/protocol/openid-connect/auth
       KEYCLOAK_TOKEN_URL: http://keycloak:8080/realms/crash-game/protocol/openid-connect/token
       KEYCLOAK_CLIENT_ID: crash-game-client
-      KEYCLOAK_USERNAME: player
-      KEYCLOAK_PASSWORD: player123
+      KEYCLOAK_REDIRECT_URI: http://localhost:3000/api/auth/callback
       NEXT_PUBLIC_GAMES_SOCKET_URL: http://localhost:4001/games
       NEXT_TELEMETRY_DISABLED: "1"
     depends_on:

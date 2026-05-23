@@ -86,10 +86,6 @@ export interface CashoutResponse {
   payoutCents: string;
 }
 
-export interface TokenResponse {
-  accessToken: string;
-}
-
 export interface RoundHistoryItem {
   id: string;
   status: string;
@@ -137,6 +133,12 @@ export interface PlayerBetHistoryItem {
   rejectionReason?: string;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface AuthenticatedPlayer {
+  username: string;
+  name?: string;
+  email?: string;
 }
 
 export interface PlayerBetHistoryResponse {
