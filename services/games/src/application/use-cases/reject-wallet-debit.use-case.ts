@@ -24,7 +24,7 @@ export class RejectWalletDebitUseCase {
   async execute(
     input: RejectWalletDebitInput,
   ): Promise<RejectWalletDebitOutput> {
-    const round = await this.roundRepository.findCurrent();
+    const round = await this.roundRepository.findByBetId(input.betId);
 
     if (!round) {
       throw new BetNotFoundError(input.betId);

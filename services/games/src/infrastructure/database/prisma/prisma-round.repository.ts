@@ -205,31 +205,48 @@ export class PrismaRoundRepository implements RoundRepository {
     });
 
     for (const bet of snapshot.bets) {
-      await this.prisma.bet.upsert({
+      const existingBet = await this.prisma.bet.findUnique({
         where: {
           id: bet.id,
         },
-        create: {
+        select: {
+          id: true,
+          updatedAt: true,
+        },
+      });
+
+      const betData = {
+        roundId: snapshot.id,
+        playerId: bet.playerId,
+        amountCents: bet.amount.toCents(),
+        status: bet.status,
+        autoCashoutMultiplier: bet.autoCashoutMultiplier?.toScaledInteger(),
+        cashoutMultiplier: bet.cashoutMultiplier?.toScaledInteger(),
+        payoutCents: bet.payoutCents,
+        rejectionReason: bet.rejectionReason,
+        updatedAt: bet.updatedAt,
+      };
+
+      if (!existingBet) {
+        await this.prisma.bet.create({
+          data: {
+            id: bet.id,
+            ...betData,
+            createdAt: bet.createdAt,
+          },
+        });
+
+        continue;
+      }
+
+      await this.prisma.bet.updateMany({
+        where: {
           id: bet.id,
-          roundId: snapshot.id,
-          playerId: bet.playerId,
-          amountCents: bet.amount.toCents(),
-          status: bet.status,
-          autoCashoutMultiplier: bet.autoCashoutMultiplier?.toScaledInteger(),
-          cashoutMultiplier: bet.cashoutMultiplier?.toScaledInteger(),
-          payoutCents: bet.payoutCents,
-          rejectionReason: bet.rejectionReason,
-          createdAt: bet.createdAt,
-          updatedAt: bet.updatedAt,
+          updatedAt: {
+            lte: bet.updatedAt,
+          },
         },
-        update: {
-          status: bet.status,
-          autoCashoutMultiplier: bet.autoCashoutMultiplier?.toScaledInteger(),
-          cashoutMultiplier: bet.cashoutMultiplier?.toScaledInteger(),
-          payoutCents: bet.payoutCents,
-          rejectionReason: bet.rejectionReason,
-          updatedAt: bet.updatedAt,
-        },
+        data: betData,
       });
     }
   }
