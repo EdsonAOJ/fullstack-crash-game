@@ -6,9 +6,10 @@ COPY package.json bun.lock* ./
 COPY packages ./packages
 COPY frontend/package.json ./frontend/package.json
 COPY services/games/package.json ./services/games/package.json
+COPY services/wallets/package.json ./services/wallets/package.json
 COPY services/games/prisma ./services/games/prisma
 
-RUN bun install --frozen-lockfile || bun install
+RUN bun install --frozen-lockfile
 
 WORKDIR /app/services/games
 
@@ -24,6 +25,7 @@ COPY services/games/src ./src
 COPY services/games/tests ./tests
 
 RUN bun run typecheck
+
 RUN mkdir -p /tmp/build-quality && touch /tmp/build-quality/typecheck-passed
 
 
@@ -31,8 +33,9 @@ FROM base AS runtime
 
 WORKDIR /app/services/games
 
-COPY --from=quality /tmp/build-quality/typecheck-passed /tmp/build-quality/typecheck-passed
+ENV NODE_ENV=production
 
+COPY --from=quality /tmp/build-quality/typecheck-passed /tmp/build-quality/typecheck-passed
 COPY services/games/tsconfig.json ./tsconfig.json
 COPY services/games/src ./src
 COPY services/games/prisma ./prisma
@@ -42,4 +45,4 @@ RUN chmod +x ./docker-entrypoint.sh
 
 EXPOSE 4001
 
-CMD ["./docker-entrypoint.sh"]
+ENTRYPOINT ["./docker-entrypoint.sh"]
