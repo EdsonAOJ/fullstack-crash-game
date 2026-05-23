@@ -7,7 +7,6 @@ import type {
   PlayerBetHistoryResponse,
   RoundHistoryResponse,
   RoundVerification,
-  TokenResponse,
   Wallet,
 } from "./types";
 
