@@ -18,21 +18,21 @@ import { PrismaWalletRepository } from "../infrastructure/database/prisma/prisma
 import { WalletsController } from "../presentation/controllers/wallets.controller";
 import { RabbitMQConnectionService } from "../infrastructure/messaging/rabbitmq/rabbitmq-connection.service";
 import { WalletEventsPublisher } from "../infrastructure/messaging/rabbitmq/wallet-events.publisher";
-import { JwtAuthGuard } from "@/infrastructure/auth/jwt-auth.guard";
-import { PrismaProcessedEventRepository } from "@/infrastructure/database/prisma/prisma-processed-event.repository";
+import { JwtAuthGuard } from "../infrastructure/auth/jwt-auth.guard";
+import { PrismaProcessedEventRepository } from "../infrastructure/database/prisma/prisma-processed-event.repository";
 import type { Clock } from "../application/ports/clock";
 import type { IdGenerator } from "../application/ports/id-generator";
 import type { WalletRepository } from "../application/ports/wallet.repository";
-import { WalletCommandProcessor } from "@/application/services/wallet-command-processor.service";
-import { PrismaOutboxRepository } from "@/infrastructure/database/prisma/prisma-outbox.repository";
-import { PrismaWalletUnitOfWork } from "@/infrastructure/database/prisma/prisma-wallet-unit-of-work";
-import { WalletUnitOfWork } from "@/application/ports/wallet-unit-of-work";
-import { OutboxPublisherService } from "@/application/services/outbox-publisher.service";
-import { OutboxRepository } from "@/application/ports/outbox.repository";
-import { OutboxPublisherRunner } from "@/infrastructure/outbox/outbox-publisher.runner";
-import { WalletResultEventsPublisher } from "@/application/ports/wallet-result-events.publisher";
-import { WalletEventsConsumer } from "@/infrastructure/messaging/rabbitmq/wallet-events.consumer";
-import { HealthService } from "@/infrastructure/health/health.service";
+import { WalletCommandProcessor } from "../application/services/wallet-command-processor.service";
+import { PrismaOutboxRepository } from "../infrastructure/database/prisma/prisma-outbox.repository";
+import { PrismaWalletUnitOfWork } from "../infrastructure/database/prisma/prisma-wallet-unit-of-work";
+import { WalletUnitOfWork } from "../application/ports/wallet-unit-of-work";
+import { OutboxPublisherService } from "../application/services/outbox-publisher.service";
+import { OutboxRepository } from "../application/ports/outbox.repository";
+import { OutboxPublisherRunner } from "../infrastructure/outbox/outbox-publisher.runner";
+import { WalletResultEventsPublisher } from "../application/ports/wallet-result-events.publisher";
+import { WalletEventsConsumer } from "../infrastructure/messaging/rabbitmq/wallet-events.consumer";
+import { HealthService } from "../infrastructure/health/health.service";
 
 @Module({
   controllers: [WalletsController],
