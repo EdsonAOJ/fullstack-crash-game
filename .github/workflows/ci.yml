@@ -28,14 +28,43 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Check Games
-        run: bun run check:games
+      - name: Generate Games Prisma client
+        run: bun run prisma:generate:games
 
-      - name: Check Wallets
-        run: bun run check:wallets
+      - name: Games typecheck
+        working-directory: services/games
+        run: bun run typecheck
 
-      - name: Check Frontend
-        run: bun run check:frontend
+      - name: Games lint
+        working-directory: services/games
+        run: bun run lint
+
+      - name: Games unit tests
+        working-directory: services/games
+        run: bun test tests/unit
+
+      - name: Generate Wallets Prisma client
+        run: bun run prisma:generate:wallets
+
+      - name: Wallets typecheck
+        working-directory: services/wallets
+        run: bun run typecheck
+
+      - name: Wallets lint
+        working-directory: services/wallets
+        run: bun run lint
+
+      - name: Wallets unit tests
+        working-directory: services/wallets
+        run: bun test tests/unit
+
+      - name: Frontend lint
+        working-directory: frontend
+        run: bun run lint
+
+      - name: Frontend build
+        working-directory: frontend
+        run: bun run build
 
   e2e:
     name: Docker E2E tests
@@ -94,9 +123,15 @@ jobs:
           docker compose logs kong
           exit 1
 
+      - name: Generate Games Prisma client
+        run: bun run prisma:generate:games
+
       - name: Run Games E2E
         working-directory: services/games
         run: bun run test:e2e
+
+      - name: Generate Wallets Prisma client
+        run: bun run prisma:generate:wallets
 
       - name: Run Wallets E2E
         working-directory: services/wallets
