@@ -9,7 +9,7 @@ import {
   getLeaderboard,
   getMyBets,
   getRoundHistory,
-  getWallet,
+  getOrCreateWallet,
   placeBet,
 } from "@/lib/api";
 import { gameQueryKeys } from "@/lib/query-keys";
@@ -111,7 +111,7 @@ export function GameDashboard() {
 
   const walletQuery = useQuery({
     queryKey: gameQueryKeys.wallet,
-    queryFn: getWallet,
+    queryFn: getOrCreateWallet,
     enabled: auth.isAuthenticated,
     refetchInterval: 5000,
   });

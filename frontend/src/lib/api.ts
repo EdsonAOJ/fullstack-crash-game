@@ -128,3 +128,31 @@ export async function getMyBets(): Promise<PlayerBetHistoryResponse> {
 
   return parseApiEnvelope<PlayerBetHistoryResponse>(response);
 }
+
+export async function createWallet(): Promise<Wallet> {
+  const response = await fetch("/api/proxy/wallets", {
+    method: "POST",
+    cache: "no-store",
+  });
+
+  return parseApiEnvelope<Wallet>(response);
+}
+
+export async function getOrCreateWallet(): Promise<Wallet> {
+  try {
+    return await getWallet();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "";
+
+    const shouldCreateWallet =
+      message.toLowerCase().includes("not found") ||
+      message.toLowerCase().includes("wallet") ||
+      message.toLowerCase().includes("carteira");
+
+    if (!shouldCreateWallet) {
+      throw error;
+    }
+
+    return createWallet();
+  }
+}

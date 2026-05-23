@@ -2,56 +2,87 @@ import { PrismaClient, WalletTransactionType } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-const PLAYER_ID = "player";
-const INITIAL_BALANCE_CENTS = 100000n;
-const SEED_EVENT_ID = "seed:player:initial-balance";
+const INITIAL_BALANCE_CENTS = 100000n; // R$ 1.000,00
 
-async function main(): Promise<void> {
+const DEMO_PLAYERS = [
+  {
+    playerId: "player",
+    eventId: "seed:player:initial-balance",
+  },
+  {
+    playerId: "player2",
+    eventId: "seed:player2:initial-balance",
+  },
+  {
+    playerId: "player3",
+    eventId: "seed:player3:initial-balance",
+  },
+];
+
+async function seedPlayerWallet(params: {
+  playerId: string;
+  eventId: string;
+}): Promise<void> {
   await prisma.$transaction(async (transaction) => {
     const existingSeedTransaction =
       await transaction.walletTransaction.findUnique({
         where: {
-          eventId: SEED_EVENT_ID,
+          eventId: params.eventId,
         },
       });
 
     if (existingSeedTransaction) {
-      console.log("Wallet seed already applied. Skipping.");
+      console.log(
+        `Wallet seed already applied for player "${params.playerId}". Skipping.`,
+      );
       return;
     }
 
+    const existingWallet = await transaction.wallet.findUnique({
+      where: {
+        playerId: params.playerId,
+      },
+    });
+
+    const balanceBefore = existingWallet?.balanceCents ?? 0n;
+    const balanceAfter = balanceBefore + INITIAL_BALANCE_CENTS;
+
     const wallet = await transaction.wallet.upsert({
       where: {
-        playerId: PLAYER_ID,
+        playerId: params.playerId,
       },
       create: {
-        playerId: PLAYER_ID,
-        balanceCents: INITIAL_BALANCE_CENTS,
+        playerId: params.playerId,
+        balanceCents: balanceAfter,
       },
       update: {
-        balanceCents: {
-          increment: INITIAL_BALANCE_CENTS,
-        },
+        balanceCents: balanceAfter,
       },
     });
 
     await transaction.walletTransaction.create({
       data: {
         walletId: wallet.id,
-        eventId: SEED_EVENT_ID,
+        eventId: params.eventId,
         type: WalletTransactionType.CREDIT,
         amountCents: INITIAL_BALANCE_CENTS,
-        balanceBefore: wallet.balanceCents - INITIAL_BALANCE_CENTS,
-        balanceAfter: wallet.balanceCents,
+        balanceBefore,
+        balanceAfter,
         referenceType: "SEED",
-        referenceId: PLAYER_ID,
+        referenceId: params.playerId,
       },
     });
 
     console.log(
-      `Seeded wallet for player "${PLAYER_ID}" with ${INITIAL_BALANCE_CENTS.toString()} cents.`,
+      `Seeded wallet for player "${params.playerId}" with ${INITIAL_BALANCE_CENTS.toString()} cents.`,
     );
   });
+}
+
+async function main(): Promise<void> {
+  for (const player of DEMO_PLAYERS) {
+    await seedPlayerWallet(player);
+  }
 }
 
 main()

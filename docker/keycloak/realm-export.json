@@ -15,14 +15,8 @@
       "standardFlowEnabled": true,
       "directAccessGrantsEnabled": true,
       "protocol": "openid-connect",
-      "redirectUris": [
-        "http://localhost:3000/*",
-        "http://localhost:5173/*"
-      ],
-      "webOrigins": [
-        "http://localhost:3000",
-        "http://localhost:5173"
-      ],
+      "redirectUris": ["http://localhost:3000/*", "http://localhost:5173/*"],
+      "webOrigins": ["http://localhost:3000", "http://localhost:5173"],
       "attributes": {
         "pkce.code.challenge.method": "S256"
       }
@@ -36,6 +30,36 @@
       "lastName": "Player",
       "enabled": true,
       "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "player123",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "username": "player2",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Player",
+      "lastName": "Two",
+      "email": "player2@crash-game.dev",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "player123",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "username": "player3",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Player",
+      "lastName": "Three",
+      "email": "player3@crash-game.dev",
       "credentials": [
         {
           "type": "password",
