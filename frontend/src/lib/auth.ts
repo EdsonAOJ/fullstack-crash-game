@@ -25,16 +25,6 @@ export interface KeycloakTokenResponse {
   scope?: string;
 }
 
-function getRequiredEnv(name: string): string {
-  const value = process.env[name];
-
-  if (!value) {
-    throw new Error(`Missing required environment variable: ${name}`);
-  }
-
-  return value;
-}
-
 export function getPublicAppUrl(): string {
   return (process.env.APP_PUBLIC_URL ?? "http://localhost:3000").replace(
     /\/$/,
